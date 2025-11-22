@@ -4,23 +4,26 @@
 
 ### Terminal 1: Backend (FastAPI)
 
+Requires Python **3.11** and [uv](https://github.com/astral-sh/uv) installed globally (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+
 ```bash
 cd backend
 
-# Make sure MongoDB password is set in .env
-# nano .env  # Replace <db_password> with your actual password
+# Ensure .env contains your MongoDB credentials
+nano .env  # Replace <db_password> with your actual password
 
-# Start the backend
-./START_BACKEND.sh
+# Install and lock dependencies (creates .venv/)
+uv sync
 
-# Or manually:
-source venv/bin/activate
-python -m app.seed_data  # Only needed once to seed database
-python run.py
+# Seed the database (only needed once)
+uv run -- python -m app.seed_data
+
+# Start the FastAPI server with live reload
+uv run -- uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Backend will run on:** http://localhost:8000
-- API Docs: http://localhost:8000/docs
+**Backend runs on:** http://localhost:8000
+- Docs: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 - Foundations: http://localhost:8000/api/v1/foundations
 
@@ -96,8 +99,8 @@ curl -X POST http://localhost:8000/api/v1/chat/message \
 
 ### Backend won't start
 - Check MongoDB password in `backend/.env`
-- Ensure virtual environment is activated
-- Run `pip install -r requirements.txt`
+- Ensure `uv sync` completed successfully (this also creates `.venv`)
+- Re-run `uv run -- uvicorn app.main:app --reload` to restart the server
 
 ### Frontend can't connect to backend
 - Make sure backend is running on port 8000
@@ -111,7 +114,7 @@ curl -X POST http://localhost:8000/api/v1/chat/message \
 ### MongoDB connection issues
 - Verify your IP is whitelisted in MongoDB Atlas
 - Check the password in `.env` is correct
-- Test connection with: `cd backend && source venv/bin/activate && python -m app.seed_data`
+- Test connection with: `cd backend && uv run -- python -m app.seed_data`
 
 ---
 

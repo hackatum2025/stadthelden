@@ -4,53 +4,42 @@ FastAPI backend for the City Hero project with MongoDB Atlas integration.
 
 ## 🚀 Quick Setup
 
-### Option 1: Automated Setup (Recommended)
+### Requirements
+- Python **3.11**
+- [uv](https://github.com/astral-sh/uv) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
+### 1. Configure environment
 ```bash
-./setup.sh
+cd backend
+nano .env  # replace <db_password> with your MongoDB password
 ```
 
-This script will:
-- Prompt for your MongoDB password
-- Create and activate a virtual environment
-- Install all dependencies
+### 2. Install dependencies
+```bash
+uv sync
+```
+This will create a managed `.venv/` and install everything declared in `pyproject.toml`/`uv.lock`.
 
-### Option 2: Manual Setup
+### 3. Seed the database (optional, but useful locally)
+```bash
+uv run -- python -m app.seed_data
+```
+This inserts 5 mock foundations into MongoDB:
+- Bürgerstiftung München (local, medium funding)
+- BMW Foundation (international, large funding)
+- Stiftung Bildungspakt Bayern (regional, medium funding)
+- Robert Bosch Stiftung (national, large funding)
+- Stadtwerke München Bildungsstiftung (local, medium funding)
 
-1. **Edit `.env` and replace `<db_password>` with your MongoDB password**
+### 4. Run the development server
+```bash
+uv run -- uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-2. **Create virtual environment:**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Seed the database with mock data:**
-   ```bash
-   python -m app.seed_data
-   ```
-   
-   This will create 5 mock foundations in MongoDB:
-   - Bürgerstiftung München (local, medium funding)
-   - BMW Foundation (international, large funding)
-   - Stiftung Bildungspakt Bayern (regional, medium funding)
-   - Robert Bosch Stiftung (national, large funding)
-   - Stadtwerke München Bildungsstiftung (local, medium funding)
-
-5. **Run the development server:**
-   ```bash
-   python run.py
-   ```
-   
-   Or with uvicorn directly:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
+Or use the small helper script:
+```bash
+uv run -- python run.py
+```
 
 ## 📚 API Documentation
 
@@ -109,11 +98,11 @@ backend/
 │   │   └── chat_service.py      # Business logic
 │   ├── main.py                  # FastAPI app
 │   └── seed_data.py             # Database seeding script
-├── requirements.txt             # Python dependencies
+├── pyproject.toml               # Project + dependency metadata
+├── uv.lock                      # Locked dependency graph (Python 3.11)
 ├── run.py                       # Development server runner
-├── setup.sh                     # Automated setup script
-├── DATA_SCHEMA.md              # Complete data schema docs
-├── .env                         # Environment variables
+├── DATA_SCHEMA.md               # Complete data schema docs
+├── .env                         # Environment variables (not committed)
 └── README.md
 ```
 

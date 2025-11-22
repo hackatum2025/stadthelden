@@ -2,22 +2,21 @@
 
 📝 Next Steps:
 
-1. Activate virtual environment:
-   source venv/bin/activate
+1. Install dependencies (creates .venv automatically):
+   uv sync
 
 2. Add your MongoDB password to .env:
    nano .env
    # Replace <db_password> with your actual password
 
 3. Seed the database:
-   python -m app.seed_data
+   uv run -- python -m app.seed_data
 
 4. Run the server:
-   python run.py
+   uv run -- uvicorn app.main:app --reload
 
 5. Test the API:
    Open http://localhost:8000/docs
 
-Note: Always activate the venv before running Python commands!
-      Use "source venv/bin/activate" (not "python3 -m ...")
+Note: `uv run -- <command>` automatically uses the managed virtual environment.
 

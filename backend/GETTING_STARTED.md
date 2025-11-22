@@ -15,18 +15,18 @@ MONGODB_URL=mongodb+srv://juliansibbing:<db_password>@hackatum.xi6hx3q.mongodb.n
 MONGODB_URL=mongodb+srv://juliansibbing:YOUR_ACTUAL_PASSWORD@hackatum.xi6hx3q.mongodb.net/?appName=hackatum
 ```
 
-## 2️⃣ Run Setup
+## 2️⃣ Install Dependencies
 
 ```bash
-./setup.sh
+uv sync
 ```
 
-If the script asks for your MongoDB password, enter it and it will automatically update your `.env` file.
+This downloads Python 3.11 (if needed), creates `.venv/`, and installs everything from `pyproject.toml` and `uv.lock`.
 
 ## 3️⃣ Seed the Database
 
 ```bash
-python -m app.seed_data
+uv run -- python -m app.seed_data
 ```
 
 You should see:
@@ -51,7 +51,7 @@ Creating indexes...
 ## 4️⃣ Start the Server
 
 ```bash
-python run.py
+uv run -- uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 You should see:
@@ -93,8 +93,8 @@ curl -X POST http://localhost:8000/api/v1/chat/message \
 ### Option 3: Test with httpie (if installed)
 
 ```bash
-# Install httpie
-pip install httpie
+# Install httpie via uv
+uv tool install httpie
 
 # List foundations
 http GET :8000/api/v1/foundations
