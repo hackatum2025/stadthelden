@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Message, BackendResponse, ChatMode } from "../types";
-import { mockBackendCall } from "../services/api";
+import { sendMessageToBackend } from "../services/api";
 
 export const useChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,7 +23,7 @@ export const useChat = () => {
     setIsLoading(true);
 
     try {
-      const response: BackendResponse = await mockBackendCall(content.trim());
+      const response: BackendResponse = await sendMessageToBackend(content.trim());
 
       // Add assistant response with typing animation
       const assistantMessage: Message = {
