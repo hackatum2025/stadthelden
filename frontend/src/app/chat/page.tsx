@@ -13,7 +13,7 @@ import { useSession } from "./context/SessionContext";
 
 export default function ChatPage() {
   const placeholder = useTypingAnimation(
-    "How do you want to help? Tell us your idea...",
+    "Wie möchtest du helfen? Erzähle uns deine Idee...",
     100
   );
   const { messages, isLoading, chatMode, isTransitioning, sendMessage } = useChat();

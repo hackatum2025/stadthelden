@@ -1,7 +1,5 @@
 import type { RequiredDocument } from "@/app/chat/components/FoundationCard";
 import type { DocumentDraft } from "../page";
-import ReactMarkdown from "react-markdown";
-import { useState } from "react";
 
 type DocumentWorkspaceProps = {
   documents: RequiredDocument[];
@@ -22,7 +20,6 @@ export const DocumentWorkspace = ({
 }: DocumentWorkspaceProps) => {
   const activeDocument = documents[activeIndex];
   const activeDraft = documentDrafts[activeIndex];
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
@@ -72,58 +69,18 @@ export const DocumentWorkspace = ({
 
           {/* Editor Area */}
           <div className="space-y-4">
-            {/* Edit/Preview Toggle */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-                <button
-                  onClick={() => setIsPreviewMode(false)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    !isPreviewMode
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Bearbeiten
-                </button>
-                <button
-                  onClick={() => setIsPreviewMode(true)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    isPreviewMode
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Vorschau
-                </button>
-              </div>
-              
-              <div className="text-sm text-gray-500">
-                Markdown wird unterstützt
-              </div>
+            {/* Text Editor */}
+            <div>
+              <textarea
+                value={activeDraft?.content || ""}
+                onChange={(e) => onDraftChange(activeIndex, e.target.value)}
+                className="w-full min-h-[500px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1b98d5] focus:border-transparent resize-y text-sm leading-relaxed"
+                placeholder="Beginne mit dem Schreiben oder bearbeite den KI-generierten Entwurf"
+              />
             </div>
 
-            {/* Editor or Preview */}
-            {!isPreviewMode ? (
-              <div>
-                <textarea
-                  value={activeDraft?.content || ""}
-                  onChange={(e) => onDraftChange(activeIndex, e.target.value)}
-                  className="w-full min-h-[500px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1b98d5] focus:border-transparent resize-y font-mono text-sm"
-                  placeholder="Beginne mit dem Schreiben oder bearbeite den KI-generierten Entwurf..."
-                />
-              </div>
-            ) : (
-              <div className="min-h-[500px] p-6 border border-gray-300 rounded-lg bg-gray-50">
-                <div className="prose prose-slate max-w-none">
-                  <ReactMarkdown>
-                    {activeDraft?.content || "*Noch kein Inhalt vorhanden*"}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            )}
-
             {/* Helper Info */}
-            {!isPreviewMode && activeDraft?.content.includes("**") && (
+            {activeDraft?.content.includes("[FRAGE:") && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,8 +91,8 @@ export const DocumentWorkspace = ({
                       Fragen im Entwurf gefunden
                     </h4>
                     <p className="text-sm text-blue-700">
-                      Der KI-Assistent hat Fragen (**fett markiert**) eingefügt, um dir zu helfen, fehlende Informationen zu ergänzen. 
-                      Beantworte diese Fragen direkt im Text oder frage den Chat-Assistenten rechts um Hilfe.
+                      Der KI-Assistent hat Fragen ([FRAGE: ...]) eingefügt, um dir zu helfen, fehlende Informationen zu ergänzen. 
+                      Beantworte diese Fragen direkt im Text.
                     </p>
                   </div>
                 </div>

@@ -141,7 +141,7 @@ export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
             {isLoading ? (
               <div className="px-4 py-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1b98d5] mx-auto"></div>
-                <p className="text-sm text-gray-500 mt-2">Lade Sitzungen...</p>
+                <p className="text-sm text-gray-500 mt-2">Lade Sitzungen</p>
               </div>
             ) : sessions.length === 0 ? (
               <div className="px-4 py-8 text-center">

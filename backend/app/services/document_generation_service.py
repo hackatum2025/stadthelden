@@ -20,7 +20,7 @@ from app.core.config import settings
 class DocumentOutput(BaseModel):
     """Schema for a single generated document."""
     document: str = Field(description="The document type (e.g., 'projektbeschreibung')")
-    text: str = Field(description="The generated content for the document in Markdown format")
+    text: str = Field(description="The generated content for the document in plain text format (no Markdown)")
 
 
 class DocumentsListOutput(BaseModel):
@@ -73,21 +73,30 @@ class DocumentGenerationService:
         
         # Generate documents
         try:
-            chain = prompt | self.llm
-            
-            response = chain.invoke({
-                "project_query": request.project_query or "Unbekanntes Projekt",
-                "chat_context": chat_context,
-                "foundation_context": foundation_context,
-                "documents_info": documents_info,
-                "format_instructions": self.parser.get_format_instructions()
-            })
-            
-            # Parse the response
-            content = response.content
-            
-            # Try to extract JSON from the response
-            parsed_output = self._parse_response(content)
+            # Try structured output first (forces valid JSON)
+            try:
+                structured_llm = self.llm.with_structured_output(DocumentsListOutput)
+                chain = prompt | structured_llm
+                
+                parsed_output = chain.invoke({
+                    "project_query": request.project_query or "Unbekanntes Projekt",
+                    "chat_context": chat_context,
+                    "foundation_context": foundation_context,
+                    "documents_info": documents_info,
+                    "format_instructions": ""
+                })
+            except Exception as structured_error:
+                print(f"Structured output failed, falling back to manual parsing: {structured_error}")
+                # Fallback to manual parsing
+                chain = prompt | self.llm
+                response = chain.invoke({
+                    "project_query": request.project_query or "Unbekanntes Projekt",
+                    "chat_context": chat_context,
+                    "foundation_context": foundation_context,
+                    "documents_info": documents_info,
+                    "format_instructions": self.parser.get_format_instructions()
+                })
+                parsed_output = self._parse_response(response.content)
             
             # Convert to GeneratedDocument objects
             generated_docs = [
@@ -102,6 +111,8 @@ class DocumentGenerationService:
             
         except Exception as e:
             print(f"Error generating documents with Gemini: {e}")
+            import traceback
+            traceback.print_exc()
             # Fallback to placeholder if AI fails
             return self._generate_placeholder_documents(request.required_documents)
     
@@ -116,9 +127,10 @@ WICHTIGE RICHTLINIEN:
 2. Verwende konkrete, messbare Ziele und klare Beschreibungen
 3. Passe den Inhalt an die spezifische Stiftung und ihre Förderschwerpunkte an
 4. Nutze die Informationen aus dem Chat-Verlauf, um das Projekt zu verstehen
-5. Verwende Markdown-Formatierung für Struktur (# Überschriften, ## Unterüberschriften, Listen, Tabellen)
-6. Sei konkret und vermeide leere Phrasen
-7. Zeige die gesellschaftliche Wirkung und Nachhaltigkeit des Projekts auf
+5. Schreibe in PLAIN TEXT ohne Markdown-Formatierung (keine #, **, -, *, |, etc.)
+6. Strukturiere durch Absätze, Zeilenumbrüche und klare Überschriften in GROSSBUCHSTABEN
+7. Sei konkret und vermeide leere Phrasen
+8. Zeige die gesellschaftliche Wirkung und Nachhaltigkeit des Projekts auf
 
 **WICHTIG - UMGANG MIT FEHLENDEN INFORMATIONEN:**
 Wenn der Kontext nicht ausreichend ist, um einen Abschnitt vollständig auszufüllen:
@@ -129,14 +141,15 @@ Wenn der Kontext nicht ausreichend ist, um einen Abschnitt vollständig auszufü
 - Stelle Fragen, die zu besseren, detaillierteren Antworten führen
 
 BEISPIEL für fehlende Information:
-"## Zielgruppe
-Das Projekt richtet sich an ** Welche spezifische Altersgruppe möchten Sie erreichen? (z.B. Kinder 6-12 Jahre, Jugendliche 13-18 Jahre)**
+"ZIELGRUPPE
 
-Die Zielgruppe hat folgende Bedürfnisse: ** Welche konkreten Herausforderungen oder Probleme hat Ihre Zielgruppe, die Ihr Projekt lösen möchte?**"
+Das Projekt richtet sich an [FRAGE: Welche spezifische Altersgruppe möchten Sie erreichen? (z.B. Kinder 6-12 Jahre, Jugendliche 13-18 Jahre)]
+
+Die Zielgruppe hat folgende Bedürfnisse: [FRAGE: Welche konkreten Herausforderungen oder Probleme hat Ihre Zielgruppe, die Ihr Projekt lösen möchte?]"
 
 DOKUMENT-TYPEN UND IHRE ANFORDERUNGEN:
 
-**Projektbeschreibung:**
+PROJEKTBESCHREIBUNG:
 - Projekttitel und Zusammenfassung
 - Ausgangssituation und Problemstellung (Frage bei Unklarheit: Welches konkrete Problem wird gelöst?)
 - Zielgruppe und deren Bedürfnisse (Frage: Wer genau profitiert? Wie viele Personen?)
@@ -144,20 +157,23 @@ DOKUMENT-TYPEN UND IHRE ANFORDERUNGEN:
 - Projektdurchführung (Methodik, Phasen, Meilensteine - Frage: Wie genau wird vorgegangen?)
 - Erwartete Ergebnisse und Wirkung (Frage: Welche messbaren Veränderungen werden erwartet?)
 - Nachhaltigkeit und langfristige Perspektive (Frage: Wie geht es nach Projektende weiter?)
+- WICHTIG: Überschriften in GROSSBUCHSTABEN, kein Markdown
 
-**Budgetplan:**
-- Übersichtliche Tabellen mit Personalkosten, Sachkosten, Honoraren
+BUDGETPLAN:
+- Einfache tabellarische Auflistung mit Spalten durch mehrere Leerzeichen getrennt
 - Gesamtkalkulation mit Eigenanteil und beantragter Förderung
 - Realistische Beträge basierend auf der Förderhöhe der Stiftung
 - Bei fehlenden Zahlen: Frage nach konkreten Kostenposten und geschätzten Beträgen
+- WICHTIG: Keine Markdown-Tabellen (keine |), einfache Textformatierung
 
-**Zeitplan:**
+ZEITPLAN:
 - Klare Projektphasen mit Monatsangaben
 - Konkrete Meilensteine
 - Evaluationspunkte
 - Bei Unklarheit: Frage nach geplanter Projektdauer und wichtigen Zeitpunkten
+- WICHTIG: Einfache Liste, kein Markdown
 
-**Evaluation:**
+EVALUATION:
 - Messbare quantitative und qualitative Indikatoren
 - Evaluationsmethoden
 - Zeitplan für Zwischen- und Abschlussevaluation
@@ -177,8 +193,6 @@ STIFTUNGSINFORMATIONEN:
 BENÖTIGTE DOKUMENTE:
 {documents_info}
 
-{format_instructions}
-
 AUFGABE:
 Erstelle für JEDES angeforderte Dokument einen vollständigen, professionellen Entwurf.
 Nutze die Informationen aus dem Chat-Verlauf, um das Projekt detailliert zu beschreiben.
@@ -186,15 +200,23 @@ Passe die Inhalte an die Förderschwerpunkte und Anforderungen der Stiftung an.
 
 WICHTIG - Bei fehlenden oder unklaren Informationen:
 - Schreibe trotzdem einen strukturierten Entwurf
-- Füge konkrete, hilfreiche Fragen ein mit dem Format: ** [Spezifische Frage]**
+- Füge konkrete, hilfreiche Fragen ein mit dem Format: [FRAGE: Spezifische Frage]
 - Die Fragen sollten dem Nutzer helfen, die fehlenden Details zu ergänzen
 - Gib Beispiele oder Orientierungshilfen in den Fragen
 
 Beispiele für gute Fragen:
-- ** Wie viele Teilnehmer:innen sollen konkret erreicht werden? (z.B. 50 Kinder, 20 Jugendliche)**
-- ** Welche Qualifikationen bringen die Projektmitarbeiter:innen mit? (z.B. Sozialpädagogik, Erfahrung in...)**
-- ** Wie hoch sind die geschätzten Personalkosten für das Projekt? (Stundensatz x Stunden)**
-- ** An welchem Datum soll das Projekt beginnen? Wie lange soll es laufen?**"""
+- [FRAGE: Wie viele Teilnehmer:innen sollen konkret erreicht werden? (z.B. 50 Kinder, 20 Jugendliche)]
+- [FRAGE: Welche Qualifikationen bringen die Projektmitarbeiter:innen mit? (z.B. Sozialpädagogik, Erfahrung in...)]
+- [FRAGE: Wie hoch sind die geschätzten Personalkosten für das Projekt? (Stundensatz x Stunden)]
+- [FRAGE: An welchem Datum soll das Projekt beginnen? Wie lange soll es laufen?]
+
+FORMATIERUNG:
+- KEIN Markdown (keine #, **, -, *, |, etc.)
+- Überschriften in GROSSBUCHSTABEN
+- Struktur durch Absätze und Leerzeilen
+- Einfacher, klarer Text
+
+Antworte mit einem JSON-Objekt mit einer "documents" Liste. Jedes Dokument hat "document" (Typ) und "text" (Inhalt als Plain Text ohne Markdown)."""
 
         return ChatPromptTemplate.from_messages([
             ("system", system_message),
@@ -247,27 +269,87 @@ Beispiele für gute Fragen:
     def _parse_response(self, content: str) -> DocumentsListOutput:
         """Parse the AI response to extract structured output."""
         try:
-            # Try to find JSON in the response
-            start_idx = content.find("{")
-            end_idx = content.rfind("}") + 1
+            # Remove markdown code blocks if present
+            cleaned_content = content.strip()
+            
+            # Remove opening ```json or ``` markers
+            if cleaned_content.startswith("```json"):
+                cleaned_content = cleaned_content[7:]
+            elif cleaned_content.startswith("```"):
+                cleaned_content = cleaned_content[3:]
+            
+            # Remove closing ``` marker
+            if cleaned_content.endswith("```"):
+                cleaned_content = cleaned_content[:-3]
+            
+            cleaned_content = cleaned_content.strip()
+            
+            # Try to find JSON in the cleaned response
+            start_idx = cleaned_content.find("{")
+            end_idx = cleaned_content.rfind("}") + 1
             
             if start_idx != -1 and end_idx > start_idx:
-                json_str = content[start_idx:end_idx]
-                data = json.loads(json_str)
+                json_str = cleaned_content[start_idx:end_idx]
+                
+                # Try to repair common JSON issues
+                json_str = self._repair_json(json_str)
+                
+                # Parse the JSON
+                data = json.loads(json_str, strict=False)
+                
                 return DocumentsListOutput(**data)
             
             # If no JSON found, try direct parsing
-            return self.parser.parse(content)
+            return self.parser.parse(cleaned_content)
             
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
+            print(f"Error position: line {e.lineno}, column {e.colno}")
+            print(f"Problematic content snippet around error:")
+            # Try to show context around the error
+            if hasattr(e, 'pos') and e.pos:
+                start = max(0, e.pos - 100)
+                end = min(len(content), e.pos + 100)
+                print(f"...{content[start:end]}...")
+            
+            # Return a more helpful error
+            return DocumentsListOutput(documents=[
+                DocumentOutput(
+                    document="error",
+                    text=f"Fehler beim JSON-Parsing: {str(e)}\n\nBitte kontaktieren Sie den Support."
+                )
+            ])
         except Exception as e:
             print(f"Error parsing response: {e}")
+            import traceback
+            traceback.print_exc()
             # Try to create a fallback structure
             return DocumentsListOutput(documents=[
                 DocumentOutput(
                     document="error",
-                    text=f"Fehler beim Parsen der Antwort: {str(e)}\n\nRohausgabe:\n{content}"
+                    text=f"Fehler beim Parsen der Antwort: {str(e)}\n\nBitte kontaktieren Sie den Support."
                 )
             ])
+    
+    def _repair_json(self, json_str: str) -> str:
+        """Attempt to repair common JSON formatting issues."""
+        # This is a simple repair - remove unescaped control characters
+        import re
+        
+        # Replace unescaped newlines, tabs, etc. within strings
+        # This regex finds strings and fixes control characters within them
+        def fix_string(match):
+            string_content = match.group(0)
+            # Only fix if it's inside a string (between quotes)
+            if string_content.startswith('"') and string_content.endswith('"'):
+                # Replace control characters
+                fixed = string_content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                return fixed
+            return string_content
+        
+        # Don't repair - this could break valid JSON
+        # Instead, just return as-is and let json.loads with strict=False handle it
+        return json_str
     
     def _generate_placeholder_documents(
         self, 
@@ -279,7 +361,7 @@ Beispiele für gute Fragen:
             placeholders.append(
                 GeneratedDocument(
                     document=doc.document_type,
-                    text=f"# {doc.document_type.title()}\n\n{doc.description}\n\nBitte füllen Sie dieses Dokument manuell aus."
+                    text=f"{doc.document_type.upper()}\n\n{doc.description}\n\nBitte füllen Sie dieses Dokument manuell aus."
                 )
             )
         return placeholders

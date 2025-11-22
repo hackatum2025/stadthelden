@@ -1,4 +1,4 @@
-export function EmptyState({ message = "Keine Stiftungen gefunden." }: { message?: string }) {
+export function EmptyState({ message = "Keine Stiftungen gefunden" }: { message?: string }) {
   return (
     <div className="h-full overflow-y-auto bg-slate-50 p-8 flex items-center justify-center">
       <div className="text-center">

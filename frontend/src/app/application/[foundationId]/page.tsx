@@ -2,8 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ApplicationSidebar } from "./components/ApplicationSidebar";
 import { DocumentWorkspace } from "./components/DocumentWorkspace";
+import { SubmissionModal } from "./components/SubmissionModal";
+import { Toast } from "./components/Toast";
 import type { Foundation, RequiredDocument } from "@/app/chat/components/FoundationCard";
 import { getFoundationScores, generateDocuments } from "@/app/chat/services/api";
 import { useSession } from "@/app/chat/context/SessionContext";
@@ -17,7 +18,7 @@ export default function ApplicationPage() {
   const params = useParams();
   const router = useRouter();
   const foundationId = params.foundationId as string;
-  const { setCurrentFoundationId, chatMessages, projectQuery } = useSession();
+  const { setCurrentFoundationId, chatMessages, projectQuery, clearSession } = useSession();
   
   const [foundation, setFoundation] = useState<Foundation | null>(null);
   const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocument[]>([]);
@@ -25,6 +26,8 @@ export default function ApplicationPage() {
   const [activeDocumentIndex, setActiveDocumentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [generatingDrafts, setGeneratingDrafts] = useState(false);
+  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const fetchFoundationAndGenerateDrafts = async () => {
@@ -128,6 +131,21 @@ export default function ApplicationPage() {
     router.back();
   };
 
+  const handleSubmit = () => {
+    // Close modal
+    setIsSubmissionModalOpen(false);
+    
+    // Show success toast
+    setShowToast(true);
+    
+    // Wait for toast to be visible, then navigate
+    setTimeout(() => {
+      // Clear session and navigate to new chat
+      clearSession();
+      router.push("/chat");
+    }, 2000);
+  };
+
   if (loading || generatingDrafts) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50">
@@ -140,7 +158,7 @@ export default function ApplicationPage() {
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {loading ? "Bereite deinen Antrag vor..." : "Erstelle Dokumententwürfe..."}
+            {loading ? "Bereite deinen Antrag vor" : "Erstelle Dokumententwürfe"}
           </h2>
           <p className="text-gray-600">
             {loading 
@@ -165,7 +183,7 @@ export default function ApplicationPage() {
   return (
     <div className="h-screen flex flex-col bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-4">
           <button
             onClick={handleBack}
@@ -182,41 +200,59 @@ export default function ApplicationPage() {
             <p className="text-sm text-gray-600">Antragserstellung</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors cursor-pointer">
+      </header>
+
+      {/* Main Content - Document Workspace */}
+      <div className="flex-1 overflow-hidden relative">
+        <DocumentWorkspace
+          documents={requiredDocuments}
+          documentDrafts={documentDrafts}
+          activeIndex={activeDocumentIndex}
+          onTabChange={setActiveDocumentIndex}
+          onDraftChange={(index, content) => {
+            const newDrafts = [...documentDrafts];
+            newDrafts[index] = { ...newDrafts[index], content };
+            setDocumentDrafts(newDrafts);
+          }}
+          foundationName={foundation.name}
+        />
+
+        {/* Action Buttons - Bottom Right */}
+        <div className="absolute bottom-8 right-8 flex items-center gap-3 z-10">
+          <button 
+            onClick={() => {
+              // Simple save feedback - could be enhanced with actual save logic
+              alert("Entwurf gespeichert!");
+            }}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all font-medium shadow-lg cursor-pointer"
+          >
             Entwurf speichern
           </button>
-          <button className="px-6 py-2 bg-gradient-to-r from-[#1b98d5] to-[#0065bd] text-white rounded-lg hover:shadow-lg transition-all font-medium cursor-pointer">
+          <button 
+            onClick={() => setIsSubmissionModalOpen(true)}
+            className="px-6 py-2 bg-gradient-to-r from-[#1b98d5] to-[#0065bd] text-white rounded-lg hover:shadow-xl transition-all font-medium shadow-lg cursor-pointer"
+          >
             Absenden
           </button>
         </div>
-      </header>
 
-      {/* Main Content - Split View */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Side - Document Workspace */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <DocumentWorkspace
-            documents={requiredDocuments}
-            documentDrafts={documentDrafts}
-            activeIndex={activeDocumentIndex}
-            onTabChange={setActiveDocumentIndex}
-            onDraftChange={(index, content) => {
-              const newDrafts = [...documentDrafts];
-              newDrafts[index] = { ...newDrafts[index], content };
-              setDocumentDrafts(newDrafts);
-            }}
-            foundationName={foundation.name}
+        {/* Submission Modal */}
+        {foundation && (
+          <SubmissionModal
+            isOpen={isSubmissionModalOpen}
+            onClose={() => setIsSubmissionModalOpen(false)}
+            onSubmit={handleSubmit}
+            foundation={foundation}
+            documents={documentDrafts}
           />
-        </div>
+        )}
 
-        {/* Right Side - Chat Sidebar */}
-        <div className="w-96 border-l border-gray-200 flex flex-col">
-          <ApplicationSidebar
-            foundationName={foundation.name}
-            activeDocument={requiredDocuments[activeDocumentIndex]}
-          />
-        </div>
+        {/* Success Toast */}
+        <Toast
+          message="Antrag erfolgreich versendet!"
+          isVisible={showToast}
+          onClose={() => setShowToast(false)}
+        />
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ export const HeroSection = () => {
 
                 {/* In cooperation with TUM - right-aligned */}
                 <div className="flex items-start gap-2">
-                    <span className="text-sm text-white/60">in cooperation with</span>
+                    <span className="text-sm text-white/60">in Zusammenarbeit mit</span>
                     <Image
                         src="/getThumb.gif"
                         alt="TUM Logo"
