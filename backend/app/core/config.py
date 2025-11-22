@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     MONGODB_URL: str
     MONGODB_DB_NAME: str = "city_hero"
     
+    # Gemini API
+    GEMINI_API_KEY: str
+    
     # CORS Origins - comma-separated string
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
     

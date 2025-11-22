@@ -1,19 +1,23 @@
 # Getting Started with City Hero Backend
 
-## 1️⃣ Setup MongoDB Password
+## 1️⃣ Setup Environment Variables
 
-First, you need to replace `<db_password>` in your `.env` file with your actual MongoDB password.
+First, you need to configure your `.env` file with required credentials.
 
 ```bash
 # Edit the .env file
 nano .env
 
-# Find this line:
-MONGODB_URL=mongodb+srv://juliansibbing:<db_password>@hackatum.xi6hx3q.mongodb.net/?appName=hackatum
-
-# Replace <db_password> with your actual password:
+# Configure MongoDB:
 MONGODB_URL=mongodb+srv://juliansibbing:YOUR_ACTUAL_PASSWORD@hackatum.xi6hx3q.mongodb.net/?appName=hackatum
+
+# Configure Gemini AI (required for document generation):
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+**Required Environment Variables:**
+- `MONGODB_URL`: Your MongoDB connection string
+- `GEMINI_API_KEY`: Google Gemini API key for AI document generation
 
 ## 2️⃣ Install Dependencies
 

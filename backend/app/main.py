@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
-from app.api.routes import chat, foundations, sessions
+from app.api.routes import chat, foundations, sessions, documents
 
 # Create FastAPI app
 app = FastAPI(
@@ -47,6 +47,12 @@ app.include_router(
     sessions.router,
     prefix=f"{settings.API_V1_PREFIX}",
     tags=["sessions"]
+)
+
+app.include_router(
+    documents.router,
+    prefix=f"{settings.API_V1_PREFIX}/documents",
+    tags=["documents"]
 )
 
 

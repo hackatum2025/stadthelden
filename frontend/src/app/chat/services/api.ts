@@ -233,3 +233,53 @@ export const listRecentSessions = async (limit: number = 3): Promise<SessionList
   }
 };
 
+// Document Generation APIs
+export type RequiredDocumentInput = {
+  document_type: string;
+  description: string;
+  required: boolean;
+};
+
+export type GenerateDocumentsRequest = {
+  required_documents: RequiredDocumentInput[];
+  chat_messages: ChatMessage[];
+  project_query?: string;
+  foundation_name?: string;
+  foundation_details?: any;
+};
+
+export type GeneratedDocument = {
+  document: string;  // document_type
+  text: string;      // generated content
+};
+
+export type GenerateDocumentsResponse = {
+  success: boolean;
+  documents: GeneratedDocument[];
+  message?: string;
+};
+
+// Generate document content based on context
+export const generateDocuments = async (
+  request: GenerateDocumentsRequest
+): Promise<GenerateDocumentsResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/documents/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error generating documents:", error);
+    return null;
+  }
+};
+

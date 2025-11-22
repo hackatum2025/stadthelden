@@ -5,23 +5,31 @@ import { useState, useEffect } from "react";
 import { ApplicationSidebar } from "./components/ApplicationSidebar";
 import { DocumentWorkspace } from "./components/DocumentWorkspace";
 import type { Foundation, RequiredDocument } from "@/app/chat/components/FoundationCard";
-import { getFoundationScores } from "@/app/chat/services/api";
+import { getFoundationScores, generateDocuments } from "@/app/chat/services/api";
 import { useSession } from "@/app/chat/context/SessionContext";
+
+export type DocumentDraft = {
+  document_type: string;
+  content: string;
+};
 
 export default function ApplicationPage() {
   const params = useParams();
   const router = useRouter();
   const foundationId = params.foundationId as string;
-  const { setCurrentFoundationId } = useSession();
+  const { setCurrentFoundationId, chatMessages, projectQuery } = useSession();
   
   const [foundation, setFoundation] = useState<Foundation | null>(null);
   const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocument[]>([]);
+  const [documentDrafts, setDocumentDrafts] = useState<DocumentDraft[]>([]);
   const [activeDocumentIndex, setActiveDocumentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [generatingDrafts, setGeneratingDrafts] = useState(false);
 
   useEffect(() => {
-    const fetchFoundation = async () => {
+    const fetchFoundationAndGenerateDrafts = async () => {
       try {
+        // Fetch foundation details
         const response = await getFoundationScores(undefined, 5);
         if (response && response.success && response.foundations) {
           const found = response.foundations.find((f: any) => f.id === foundationId);
@@ -46,8 +54,62 @@ export default function ApplicationPage() {
               website: found.website,
             };
             setFoundation(mappedFoundation);
-            setRequiredDocuments(found.antragsprozess?.required_documents || []);
+            
+            const requiredDocs = found.antragsprozess?.required_documents || [];
+            setRequiredDocuments(requiredDocs);
             setCurrentFoundationId(foundationId); // Save to session
+            
+            // Generate document drafts using AI
+            setLoading(false);
+            setGeneratingDrafts(true);
+            
+            try {
+              const draftsResponse = await generateDocuments({
+                required_documents: requiredDocs.map((doc: RequiredDocument) => ({
+                  document_type: doc.document_type,
+                  description: doc.description,
+                  required: doc.required,
+                })),
+                chat_messages: chatMessages,
+                project_query: projectQuery || undefined,
+                foundation_name: found.name,
+                foundation_details: {
+                  purpose: found.purpose,
+                  gemeinnuetzige_zwecke: found.gemeinnuetzige_zwecke,
+                  foerderhoehe: found.foerderhoehe,
+                  foerderbereich: found.foerderbereich,
+                },
+              });
+              
+              if (draftsResponse && draftsResponse.success) {
+                // Map generated documents to drafts
+                const drafts: DocumentDraft[] = draftsResponse.documents.map(doc => ({
+                  document_type: doc.document,
+                  content: doc.text,
+                }));
+                setDocumentDrafts(drafts);
+              } else {
+                console.error("Failed to generate document drafts");
+                // Initialize with empty drafts
+                setDocumentDrafts(
+                  requiredDocs.map((doc: RequiredDocument) => ({
+                    document_type: doc.document_type,
+                    content: "",
+                  }))
+                );
+              }
+            } catch (error) {
+              console.error("Error generating document drafts:", error);
+              // Initialize with empty drafts on error
+              setDocumentDrafts(
+                requiredDocs.map((doc: RequiredDocument) => ({
+                  document_type: doc.document_type,
+                  content: "",
+                }))
+              );
+            } finally {
+              setGeneratingDrafts(false);
+            }
           } else {
             console.error("Foundation not found");
             router.push("/chat");
@@ -56,24 +118,41 @@ export default function ApplicationPage() {
       } catch (error) {
         console.error("Error fetching foundation:", error);
         router.push("/chat");
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchFoundation();
-  }, [foundationId, router]);
+    fetchFoundationAndGenerateDrafts();
+  }, [foundationId, router, chatMessages, projectQuery]);
 
   const handleBack = () => {
     router.back();
   };
 
-  if (loading) {
+  if (loading || generatingDrafts) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1b98d5] mx-auto mb-4"></div>
-          <p className="text-gray-600">Lade Antragsinformationen...</p>
+        <div className="text-center animate-fadeIn">
+          <div className="mb-8">
+            <div className="relative w-24 h-24 mx-auto">
+              <div className="absolute inset-0 border-4 border-[#1b98d5]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-[#1b98d5] rounded-full border-t-transparent animate-spin"></div>
+              <div className="absolute inset-3 border-4 border-[#0065bd]/30 rounded-full border-b-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {loading ? "Bereite deinen Antrag vor..." : "Erstelle Dokumententwürfe..."}
+          </h2>
+          <p className="text-gray-600">
+            {loading 
+              ? "Lade Stiftungsinformationen und Dokumentanforderungen"
+              : "KI generiert professionelle Entwürfe basierend auf deinem Projekt"
+            }
+          </p>
+          <div className="mt-6 flex justify-center gap-2">
+            <span className="w-3 h-3 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+            <span className="w-3 h-3 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
+            <span className="w-3 h-3 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></span>
+          </div>
         </div>
       </div>
     );
@@ -119,8 +198,14 @@ export default function ApplicationPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <DocumentWorkspace
             documents={requiredDocuments}
+            documentDrafts={documentDrafts}
             activeIndex={activeDocumentIndex}
             onTabChange={setActiveDocumentIndex}
+            onDraftChange={(index, content) => {
+              const newDrafts = [...documentDrafts];
+              newDrafts[index] = { ...newDrafts[index], content };
+              setDocumentDrafts(newDrafts);
+            }}
             foundationName={foundation.name}
           />
         </div>
