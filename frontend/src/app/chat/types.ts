@@ -7,6 +7,7 @@ export type Message = {
 };
 
 export type BackendResponse = {
+  session_id: string;
   code: "refine" | "finish";
   message: string;
 };

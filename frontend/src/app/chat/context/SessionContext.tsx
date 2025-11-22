@@ -24,6 +24,7 @@ type SessionContextType = {
   saveSession: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   clearSession: () => void;
+  ensureSession: () => Promise<string>; // New: ensure session exists before chat
 };
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -120,6 +121,37 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
     }
   }, [loadSession]);
 
+  // Ensure session exists (create if needed) - returns session ID
+  const ensureSession = useCallback(async (): Promise<string> => {
+    if (sessionId) {
+      console.log("✅ Using existing session:", sessionId);
+      return sessionId;
+    }
+
+    console.log("📝 Creating new session before sending message...");
+    const sessionData: SessionData = {
+      chat_messages: [],
+      foundation_results: [],
+      current_foundation_id: undefined,
+      project_query: undefined,
+    };
+
+    try {
+      const response = await createSession(sessionData);
+      if (response?.success) {
+        setSessionId(response.session_id);
+        localStorage.setItem("sessionId", response.session_id);
+        console.log("✅ New session created:", response.session_id);
+        return response.session_id;
+      } else {
+        throw new Error("Failed to create session");
+      }
+    } catch (error) {
+      console.error("❌ Error creating session:", error);
+      throw error;
+    }
+  }, [sessionId]);
+
   // Clear session
   const clearSession = useCallback(() => {
     setSessionId(null);
@@ -156,6 +188,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
         saveSession,
         loadSession,
         clearSession,
+        ensureSession,
       }}
     >
       {children}

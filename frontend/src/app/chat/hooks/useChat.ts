@@ -8,7 +8,14 @@ export const useChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [chatMode, setChatMode] = useState<ChatMode>("initial");
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const { chatMessages: sessionMessages, foundationResults, setChatMessages, setProjectQuery } = useSession();
+  const { 
+    sessionId,
+    chatMessages: sessionMessages, 
+    foundationResults, 
+    setChatMessages, 
+    setProjectQuery,
+    ensureSession 
+  } = useSession();
   const [hasRestoredSession, setHasRestoredSession] = useState(false);
 
   // Restore session data when sessionMessages become available
@@ -81,19 +88,26 @@ export const useChat = () => {
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
 
-    // Add user message
-    const userMessage: Message = { 
-      role: "user", 
-      content: content.trim(),
-      timestamp: new Date(),
-      id: `msg-${Date.now()}-user`,
-      isNew: true
-    };
-    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
-      const response: BackendResponse = await sendMessageToBackend(content.trim());
+      // Ensure we have a session before sending message
+      const currentSessionId = await ensureSession();
+      console.log("📤 Sending message with session:", currentSessionId);
+
+      // Add user message to UI
+      const userMessage: Message = { 
+        role: "user", 
+        content: content.trim(),
+        timestamp: new Date(),
+        id: `msg-${Date.now()}-user`,
+        isNew: true
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      // Send to backend with session_id
+      const response: BackendResponse = await sendMessageToBackend(content.trim(), currentSessionId);
+      console.log("📥 Received response:", response);
 
       // Add assistant response with typing animation
       const assistantMessage: Message = {
@@ -122,6 +136,8 @@ export const useChat = () => {
       return response;
     } catch (error) {
       console.error("Error sending message:", error);
+      // Remove the user message from UI on error
+      setMessages((prev) => prev.slice(0, -1));
       throw error;
     } finally {
       setIsLoading(false);

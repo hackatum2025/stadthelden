@@ -5,8 +5,7 @@ Document generation service using Gemini AI for creating application documents.
 from typing import List
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from app.models.document_generation import (
@@ -32,7 +31,7 @@ class DocumentGenerationService:
     """Service for generating application documents using Gemini AI."""
     
     def __init__(self):
-        """Initialize the Gemini AI model."""
+        """Initialize the Gemini AI model with structured output."""
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=settings.GEMINI_API_KEY,
@@ -40,8 +39,8 @@ class DocumentGenerationService:
             convert_system_message_to_human=True
         )
         
-        # Set up output parser
-        self.parser = PydanticOutputParser(pydantic_object=DocumentsListOutput)
+        # Set up structured output using modern LangChain pattern
+        self.structured_llm = self.llm.with_structured_output(DocumentsListOutput)
     
     async def generate_documents(
         self, 
@@ -71,23 +70,18 @@ class DocumentGenerationService:
         # Create the prompt
         prompt = self._create_prompt()
         
-        # Generate documents
+        # Generate documents using modern LangChain structured output
         try:
-            chain = prompt | self.llm
+            # Create chain with structured output
+            chain = prompt | self.structured_llm
             
-            response = chain.invoke({
+            # Invoke the chain
+            parsed_output: DocumentsListOutput = chain.invoke({
                 "project_query": request.project_query or "Unbekanntes Projekt",
                 "chat_context": chat_context,
                 "foundation_context": foundation_context,
                 "documents_info": documents_info,
-                "format_instructions": self.parser.get_format_instructions()
             })
-            
-            # Parse the response
-            content = response.content
-            
-            # Try to extract JSON from the response
-            parsed_output = self._parse_response(content)
             
             # Convert to GeneratedDocument objects
             generated_docs = [
@@ -102,6 +96,8 @@ class DocumentGenerationService:
             
         except Exception as e:
             print(f"Error generating documents with Gemini: {e}")
+            import traceback
+            traceback.print_exc()
             # Fallback to placeholder if AI fails
             return self._generate_placeholder_documents(request.required_documents)
     
@@ -177,8 +173,6 @@ STIFTUNGSINFORMATIONEN:
 BENÖTIGTE DOKUMENTE:
 {documents_info}
 
-{format_instructions}
-
 AUFGABE:
 Erstelle für JEDES angeforderte Dokument einen vollständigen, professionellen Entwurf.
 Nutze die Informationen aus dem Chat-Verlauf, um das Projekt detailliert zu beschreiben.
@@ -194,7 +188,18 @@ Beispiele für gute Fragen:
 - ** Wie viele Teilnehmer:innen sollen konkret erreicht werden? (z.B. 50 Kinder, 20 Jugendliche)**
 - ** Welche Qualifikationen bringen die Projektmitarbeiter:innen mit? (z.B. Sozialpädagogik, Erfahrung in...)**
 - ** Wie hoch sind die geschätzten Personalkosten für das Projekt? (Stundensatz x Stunden)**
-- ** An welchem Datum soll das Projekt beginnen? Wie lange soll es laufen?**"""
+- ** An welchem Datum soll das Projekt beginnen? Wie lange soll es laufen?**
+
+AUSGABE FORMAT:
+Gib die Dokumente als strukturiertes JSON zurück mit folgendem Format:
+{{
+  "documents": [
+    {{
+      "document": "name_des_dokuments",
+      "text": "Der vollständige Markdown-Text des Dokuments..."
+    }}
+  ]
+}}"""
 
         return ChatPromptTemplate.from_messages([
             ("system", system_message),
@@ -213,7 +218,7 @@ Beispiele für gute Fragen:
         
         return "\n".join(context_parts)
     
-    def _build_foundation_context(self, foundation_name: str, foundation_details: dict) -> str:
+    def _build_foundation_context(self, foundation_name: str | None, foundation_details: dict | None) -> str:
         """Build context about the foundation."""
         if not foundation_name:
             return "Keine spezifischen Stiftungsinformationen vorhanden."
@@ -243,31 +248,6 @@ Beispiele für gute Fragen:
             docs_info.append(f"- {doc.document_type} ({required_text}): {doc.description}")
         
         return "\n".join(docs_info)
-    
-    def _parse_response(self, content: str) -> DocumentsListOutput:
-        """Parse the AI response to extract structured output."""
-        try:
-            # Try to find JSON in the response
-            start_idx = content.find("{")
-            end_idx = content.rfind("}") + 1
-            
-            if start_idx != -1 and end_idx > start_idx:
-                json_str = content[start_idx:end_idx]
-                data = json.loads(json_str)
-                return DocumentsListOutput(**data)
-            
-            # If no JSON found, try direct parsing
-            return self.parser.parse(content)
-            
-        except Exception as e:
-            print(f"Error parsing response: {e}")
-            # Try to create a fallback structure
-            return DocumentsListOutput(documents=[
-                DocumentOutput(
-                    document="error",
-                    text=f"Fehler beim Parsen der Antwort: {str(e)}\n\nRohausgabe:\n{content}"
-                )
-            ])
     
     def _generate_placeholder_documents(
         self, 

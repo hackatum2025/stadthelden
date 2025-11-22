@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 // Real backend call
 export const sendMessageToBackend = async (
   message: string,
-  conversationId?: string
+  sessionId: string
 ): Promise<BackendResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/chat/message`, {
@@ -13,36 +13,39 @@ export const sendMessageToBackend = async (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
+        session_id: sessionId,
         content: message
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Backend error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
     console.error("Error calling backend:", error);
-    // Fallback to mock response if backend is unavailable
-    return mockBackendCall(message);
+    throw error; // Don't fallback to mock - we need proper session handling
   }
 };
 
 // Mock backend call - fallback when backend is unavailable
 export const mockBackendCall = async (
-  userMessage: string
+  userMessage: string,
+  sessionId: string
 ): Promise<BackendResponse> => {
   console.log("⚠️ Using mock backend - real backend unavailable");
-  
+
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Mock logic: if message is too short, ask for refinement
   if (userMessage.length < 20) {
     return {
+      session_id: sessionId,
       code: "refine",
       message:
         "Could you please provide more details about how you'd like to help? The more specific you are, the better we can assist you!",
@@ -51,6 +54,7 @@ export const mockBackendCall = async (
 
   // Otherwise, finish
   return {
+    session_id: sessionId,
     code: "finish",
     message:
       "Thank you for your contribution! We've recorded your idea and will get back to you soon.",
@@ -77,15 +81,15 @@ export const getFoundationScores = async (query?: string, limit: number = 5) => 
     const params = new URLSearchParams();
     if (query) params.append("query", query);
     params.append("limit", limit.toString());
-    
+
     const response = await fetch(
       `${API_BASE_URL}/api/v1/foundations/scores?${params.toString()}`
     );
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching foundation scores:", error);
@@ -132,11 +136,11 @@ export const createSession = async (data: SessionData): Promise<SessionResponse 
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error creating session:", error);
@@ -157,11 +161,11 @@ export const updateSession = async (
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error updating session:", error);
@@ -173,11 +177,11 @@ export const updateSession = async (
 export const getSession = async (sessionId: string): Promise<SessionResponse | null> => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/sessions/${sessionId}`);
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching session:", error);
@@ -191,11 +195,11 @@ export const deleteSession = async (sessionId: string): Promise<boolean> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/sessions/${sessionId}`, {
       method: "DELETE",
     });
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return true;
   } catch (error) {
     console.error("Error deleting session:", error);
@@ -221,11 +225,11 @@ export type SessionListResponse = {
 export const listRecentSessions = async (limit: number = 3): Promise<SessionListResponse | null> => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/sessions?limit=${limit}`);
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error listing sessions:", error);
@@ -271,11 +275,11 @@ export const generateDocuments = async (
       },
       body: JSON.stringify(request),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error generating documents:", error);
