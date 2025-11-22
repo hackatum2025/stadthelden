@@ -95,43 +95,53 @@ export default function ChatPage() {
           showSplitView ? 'px-2 py-2' : 'px-4 py-8'
         }`}>
           <div 
-            className={`flex flex-col w-full h-full transition-all duration-[1500ms] ${
-              showSplitView ? 'max-w-full' : 'max-w-4xl'
-            } ${
-              showHero ? "justify-center items-center" : "justify-end"
+            className={`flex flex-col w-full transition-all duration-[1500ms] ${
+              showSplitView ? 'max-w-full h-full justify-end' : 'max-w-4xl'
             }`}
           >
-            {/* Hero Section - only show when no messages */}
+            {/* Hero Section and Input grouped together when showing hero */}
             {showHero && !showSplitView && (
-              <div className="animate-fadeIn">
+              <div className="flex flex-col items-center animate-fadeIn">
                 <HeroSection />
+                <div className="w-full max-w-4xl mt-8">
+                  <ChatInput
+                    onSend={sendMessage}
+                    placeholder={placeholder}
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Refining Mode Banner */}
-            {showRefiningBanner && (
-              <div className="animate-slideDown">
-                <RefiningMode />
-              </div>
+            {/* Chat with messages */}
+            {messages.length > 0 && (
+              <>
+                {/* Refining Mode Banner */}
+                {showRefiningBanner && (
+                  <div className="animate-slideDown">
+                    <RefiningMode />
+                  </div>
+                )}
+
+                {/* Chat Messages */}
+                <div className={`w-full flex-1 transition-all duration-[2000ms] ${
+                  showSplitView ? 'px-2 overflow-y-auto' : 'px-4'
+                } animate-fadeIn`}>
+                  <ChatMessages messages={messages} isLoading={isLoading} />
+                </div>
+
+                {/* Input with Send Button */}
+                <div className={`w-full transition-all duration-[2000ms] ${
+                  showSplitView ? 'px-2 mt-2' : 'px-4 mt-4'
+                }`}>
+                  <ChatInput
+                    onSend={sendMessage}
+                    placeholder={placeholder}
+                    disabled={isLoading}
+                  />
+                </div>
+              </>
             )}
-
-            {/* Chat Messages */}
-            <div className={`w-full flex-1 transition-all duration-[2000ms] ${
-              showSplitView ? 'px-2 overflow-y-auto' : 'px-4'
-            } ${messages.length > 0 ? 'animate-fadeIn' : ''}`}>
-              <ChatMessages messages={messages} isLoading={isLoading} />
-            </div>
-
-            {/* Input with Send Button */}
-            <div className={`w-full transition-all duration-[2000ms] ${
-              showSplitView ? 'px-2 mt-2' : 'px-4'
-            }`}>
-              <ChatInput
-                onSend={sendMessage}
-                placeholder={placeholder}
-                disabled={isLoading}
-              />
-            </div>
           </div>
         </main>
 
