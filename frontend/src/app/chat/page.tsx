@@ -9,6 +9,7 @@ import { ChatInput } from "./components/ChatInput";
 import { RefiningMode } from "./components/RefiningMode";
 import { ResultsView } from "./components/ResultsView";
 import { ProjectAnalysisLoader } from "./components/ProjectAnalysisLoader";
+import { useSession } from "./context/SessionContext";
 
 export default function ChatPage() {
   const placeholder = useTypingAnimation(
@@ -16,14 +17,21 @@ export default function ChatPage() {
     100
   );
   const { messages, isLoading, chatMode, isTransitioning, sendMessage } = useChat();
+  const { clearSession, sessionId } = useSession();
+
+  const handleNewChat = () => {
+    clearSession();
+    window.location.reload();
+  };
 
   const showHero = messages.length === 0;
   const showRefiningBanner = chatMode === "refining" && messages.length > 0;
   const showResults = chatMode === "finished" && !isTransitioning;
   const showSplitView = showResults || isTransitioning;
+  const hasRestoredSession = sessionId && messages.length > 0;
 
   return (
-    <div className="flex h-screen bg-[#1b98d5] transition-all duration-[2000ms]">
+    <div className="flex h-screen bg-[#1b98d5] transition-all duration-[2000ms] relative">
       {/* Results Section - Left Side */}
       <div 
         className={`transition-all duration-[2000ms] ease-in-out ${
@@ -45,12 +53,49 @@ export default function ChatPage() {
             : 'w-full'
         }`}
       >
+        {/* Header Bar - Only shown in split view */}
+        {showSplitView && (
+          <div className="flex items-center justify-between px-4 py-4 border-b border-white/20 animate-fadeIn">
+            <div>
+              <h2 className="text-lg font-bold text-white mb-0.5">Chat</h2>
+              <p className="text-xs text-white/80">
+                Ich habe deine Projektidee analysiert
+              </p>
+            </div>
+            {sessionId && (
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all text-sm font-medium cursor-pointer group"
+              >
+                <svg className="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Neu
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* New Chat Button - Centered when not in split view */}
+        {!showSplitView && sessionId && messages.length > 0 && (
+          <div className="absolute top-6 right-6 z-50">
+            <button
+              onClick={handleNewChat}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-[#1b98d5] rounded-lg hover:shadow-lg transition-all font-medium cursor-pointer group"
+            >
+              <svg className="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Neuer Chat
+            </button>
+          </div>
+        )}
         {/* Main chat area */}
-        <main className={`flex flex-1 items-center justify-center transition-all duration-[2000ms] ${
-          showSplitView ? 'px-2 py-4' : 'px-4 py-8'
+        <main className={`flex flex-1 items-center justify-center transition-all duration-[2000ms] overflow-hidden ${
+          showSplitView ? 'px-2 py-2' : 'px-4 py-8'
         }`}>
           <div 
-            className={`flex flex-col w-full transition-all duration-[1500ms] ${
+            className={`flex flex-col w-full h-full transition-all duration-[1500ms] ${
               showSplitView ? 'max-w-full' : 'max-w-4xl'
             } ${
               showHero ? "justify-center items-center" : "justify-end"
@@ -70,26 +115,16 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Compact header for split view */}
-            {showSplitView && (
-              <div className="mb-4 px-2 animate-fadeIn">
-                <h2 className="text-lg font-bold text-white mb-1">Chat</h2>
-                <p className="text-sm text-white/90">
-                  Ich habe deine Projektidee analysiert. Soll ich dir helfen, die offenen Fragen zu klären?
-                </p>
-              </div>
-            )}
-
             {/* Chat Messages */}
-            <div className={`w-full transition-all duration-[2000ms] ${
-              showSplitView ? 'px-2' : 'px-4'
+            <div className={`w-full flex-1 transition-all duration-[2000ms] ${
+              showSplitView ? 'px-2 overflow-y-auto' : 'px-4'
             } ${messages.length > 0 ? 'animate-fadeIn' : ''}`}>
               <ChatMessages messages={messages} isLoading={isLoading} />
             </div>
 
             {/* Input with Send Button */}
             <div className={`w-full transition-all duration-[2000ms] ${
-              showSplitView ? 'px-2' : 'px-4'
+              showSplitView ? 'px-2 mt-2' : 'px-4'
             }`}>
               <ChatInput
                 onSend={sendMessage}

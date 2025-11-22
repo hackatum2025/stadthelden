@@ -93,3 +93,143 @@ export const getFoundationScores = async (query?: string, limit: number = 5) => 
   }
 };
 
+// Session Management APIs
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+};
+
+export type SessionData = {
+  chat_messages: ChatMessage[];
+  foundation_results: any[];
+  current_foundation_id?: string;
+  project_query?: string;
+};
+
+export type SessionResponse = {
+  success: boolean;
+  session_id: string;
+  data?: {
+    session_id: string;
+    chat_messages: ChatMessage[];
+    foundation_results: any[];
+    current_foundation_id?: string;
+    project_query?: string;
+    created_at: string;
+    updated_at: string;
+  };
+  message?: string;
+};
+
+// Create a new session
+export const createSession = async (data: SessionData): Promise<SessionResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/sessions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating session:", error);
+    return null;
+  }
+};
+
+// Update an existing session
+export const updateSession = async (
+  sessionId: string,
+  data: SessionData
+): Promise<SessionResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/sessions/${sessionId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating session:", error);
+    return null;
+  }
+};
+
+// Get a session by ID
+export const getSession = async (sessionId: string): Promise<SessionResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/sessions/${sessionId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching session:", error);
+    return null;
+  }
+};
+
+// Delete a session
+export const deleteSession = async (sessionId: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/sessions/${sessionId}`, {
+      method: "DELETE",
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    return false;
+  }
+};
+
+// List recent sessions
+export type SessionListItem = {
+  session_id: string;
+  project_query?: string;
+  created_at: string;
+  updated_at: string;
+  chat_messages: ChatMessage[];
+};
+
+export type SessionListResponse = {
+  success: boolean;
+  count: number;
+  sessions: SessionListItem[];
+};
+
+export const listRecentSessions = async (limit: number = 3): Promise<SessionListResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/sessions?limit=${limit}`);
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error listing sessions:", error);
+    return null;
+  }
+};
+

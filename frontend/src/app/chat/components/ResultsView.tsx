@@ -6,15 +6,46 @@ import { ErrorState } from "./ErrorState";
 import { FoundationsLoader } from "./FoundationsLoader";
 import { EmptyState } from "./EmptyState";
 import { FoundationCard, type Foundation } from "./FoundationCard";
+import { useSession } from "../context/SessionContext";
 
 export function ResultsView() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [foundations, setFoundations] = useState<Foundation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { foundationResults: sessionResults, setFoundationResults } = useSession();
 
   useEffect(() => {
-    // Fetch real data from backend
+    // Check if we have session data first
+    if (sessionResults && sessionResults.length > 0) {
+      console.log("✅ Restoring foundations from session:", sessionResults.length);
+      
+      const mappedFoundations: Foundation[] = sessionResults.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        logo: f.logo,
+        purpose: f.purpose,
+        description: f.description,
+        fundingAmount: f.funding_amount,
+        matches: f.matches,
+        matchScore: f.match_score,
+        longDescription: f.long_description,
+        legalForm: f.legal_form,
+        gemeinnuetzigeZwecke: f.gemeinnuetzige_zwecke,
+        antragsprozess: f.antragsprozess,
+        foerderbereich: f.foerderbereich,
+        foerderhoehe: f.foerderhoehe,
+        contact: f.contact,
+        pastProjects: f.past_projects,
+        website: f.website,
+      }));
+      
+      setFoundations(mappedFoundations);
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch real data from backend if no session data
     const fetchFoundations = async () => {
       try {
         const response = await getFoundationScores(undefined, 5);
@@ -43,6 +74,7 @@ export function ResultsView() {
           }));
           
           setFoundations(mappedFoundations);
+          setFoundationResults(response.foundations); // Save to session
           console.log("✅ Loaded foundations from backend:", mappedFoundations);
         } else {
           setError("Backend ist nicht erreichbar. Bitte starte den Server.");
@@ -57,7 +89,7 @@ export function ResultsView() {
     };
 
     fetchFoundations();
-  }, []);
+  }, [sessionResults, setFoundationResults]);
 
   const handleToggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);

@@ -6,11 +6,13 @@ import { ApplicationSidebar } from "./components/ApplicationSidebar";
 import { DocumentWorkspace } from "./components/DocumentWorkspace";
 import type { Foundation, RequiredDocument } from "@/app/chat/components/FoundationCard";
 import { getFoundationScores } from "@/app/chat/services/api";
+import { useSession } from "@/app/chat/context/SessionContext";
 
 export default function ApplicationPage() {
   const params = useParams();
   const router = useRouter();
   const foundationId = params.foundationId as string;
+  const { setCurrentFoundationId } = useSession();
   
   const [foundation, setFoundation] = useState<Foundation | null>(null);
   const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocument[]>([]);
@@ -45,6 +47,7 @@ export default function ApplicationPage() {
             };
             setFoundation(mappedFoundation);
             setRequiredDocuments(found.antragsprozess?.required_documents || []);
+            setCurrentFoundationId(foundationId); // Save to session
           } else {
             console.error("Foundation not found");
             router.push("/chat");
