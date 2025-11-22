@@ -10,7 +10,12 @@ build:
       - cd backend && uv sync
 
 run:
-  command: cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+  pre-run:  
+    - pip3 install --upgrade pip
+    - pip3 install uv
+    - cd backend
+    - uv sync
+  command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
   network:
     port: 8000
   env:
