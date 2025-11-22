@@ -1,0 +1,16 @@
+[project]
+name = "hackatum2025-scraper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "crawl4ai>=0.7.7",
+    "duckdb>=1.4.2",
+    "ipykernel>=7.1.0",
+    "pandas>=2.3.3",
+    "selenium>=4.38.0",
+    "tool>=0.8.0",
+    "webdriver-manager>=4.0.2",
+]
