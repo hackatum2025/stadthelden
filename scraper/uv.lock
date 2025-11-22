@@ -738,7 +738,7 @@ wheels = [
 ]
 
 [[package]]
-name = "hackatum2025"
+name = "hackatum2025-scraper"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
