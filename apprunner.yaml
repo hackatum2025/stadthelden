@@ -22,6 +22,3 @@ run:
       value: "city_hero"
     - name: DEBUG
       value: "False"
-  secrets:
-    - name: MONGODB_URL
-      value-from: arn:aws:secretsmanager:eu-central-1:586206156633:secret:Hackatum2025-8ehDyQ
