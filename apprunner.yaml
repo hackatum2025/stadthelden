@@ -1,6 +1,5 @@
 version: 1.0
 runtime: python3
-source_dir: backend
 
 env:
   variables:
@@ -17,8 +16,9 @@ build:
     pre-build:
       - pip install --upgrade pip
     build:
-      - pip install -r requirements.txt
+      - pip install -r backend/requirements.txt
 
 run:
-  command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+  command: >
+    bash -c "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8080"
 
