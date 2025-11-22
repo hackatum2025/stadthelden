@@ -12,6 +12,7 @@ import { useSession } from "@/app/chat/context/SessionContext";
 export type DocumentDraft = {
   document_type: string;
   content: string;
+  improvements?: string[];
 };
 
 export default function ApplicationPage() {
@@ -89,6 +90,7 @@ export default function ApplicationPage() {
                 const drafts: DocumentDraft[] = draftsResponse.documents.map(doc => ({
                   document_type: doc.document,
                   content: doc.text,
+                  improvements: doc.improvements || [],
                 }));
                 setDocumentDrafts(drafts);
               } else {
@@ -98,6 +100,7 @@ export default function ApplicationPage() {
                   requiredDocs.map((doc: RequiredDocument) => ({
                     document_type: doc.document_type,
                     content: "",
+                    improvements: [],
                   }))
                 );
               }
@@ -108,6 +111,7 @@ export default function ApplicationPage() {
                 requiredDocs.map((doc: RequiredDocument) => ({
                   document_type: doc.document_type,
                   content: "",
+                  improvements: [],
                 }))
               );
             } finally {
@@ -212,6 +216,11 @@ export default function ApplicationPage() {
           onDraftChange={(index, content) => {
             const newDrafts = [...documentDrafts];
             newDrafts[index] = { ...newDrafts[index], content };
+            setDocumentDrafts(newDrafts);
+          }}
+          onImprovementsUpdate={(index, improvements) => {
+            const newDrafts = [...documentDrafts];
+            newDrafts[index] = { ...newDrafts[index], improvements };
             setDocumentDrafts(newDrafts);
           }}
           foundationName={foundation.name}

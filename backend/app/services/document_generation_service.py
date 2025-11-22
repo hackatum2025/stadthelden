@@ -20,7 +20,8 @@ from app.core.config import settings
 class DocumentOutput(BaseModel):
     """Schema for a single generated document."""
     document: str = Field(description="The document type (e.g., 'projektbeschreibung')")
-    text: str = Field(description="The generated content for the document in plain text format (no Markdown)")
+    text: str = Field(description="The generated content for the document in plain text format (no Markdown). This should be a complete, usable draft without any placeholder questions.")
+    improvements: List[str] = Field(description="MANDATORY: List of exactly 3 specific improvement suggestions to help the user enhance the document. Each item must be a clear, actionable suggestion. This field MUST NOT be empty.", min_length=1, max_length=3)
 
 
 class DocumentsListOutput(BaseModel):
@@ -33,12 +34,22 @@ class DocumentGenerationService:
     
     def __init__(self):
         """Initialize the Gemini AI model."""
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=settings.GEMINI_API_KEY,
-            temperature=0.7,
-            convert_system_message_to_human=True
-        )
+        if not settings.GEMINI_API_KEY:
+            print("❌ WARNING: GEMINI_API_KEY is not set!")
+        else:
+            print(f"✅ GEMINI_API_KEY is configured (length: {len(settings.GEMINI_API_KEY)})")
+        
+        try:
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash-exp",
+                google_api_key=settings.GEMINI_API_KEY,
+                temperature=0.7,
+                convert_system_message_to_human=True
+            )
+            print(f"✅ Gemini AI model initialized: gemini-2.0-flash-exp")
+        except Exception as e:
+            print(f"❌ Failed to initialize Gemini AI: {e}")
+            raise
         
         # Set up output parser
         self.parser = PydanticOutputParser(pydantic_object=DocumentsListOutput)
@@ -73,46 +84,44 @@ class DocumentGenerationService:
         
         # Generate documents
         try:
-            # Try structured output first (forces valid JSON)
-            try:
-                structured_llm = self.llm.with_structured_output(DocumentsListOutput)
-                chain = prompt | structured_llm
-                
-                parsed_output = chain.invoke({
-                    "project_query": request.project_query or "Unbekanntes Projekt",
-                    "chat_context": chat_context,
-                    "foundation_context": foundation_context,
-                    "documents_info": documents_info,
-                    "format_instructions": ""
-                })
-            except Exception as structured_error:
-                print(f"Structured output failed, falling back to manual parsing: {structured_error}")
-                # Fallback to manual parsing
-                chain = prompt | self.llm
-                response = chain.invoke({
-                    "project_query": request.project_query or "Unbekanntes Projekt",
-                    "chat_context": chat_context,
-                    "foundation_context": foundation_context,
-                    "documents_info": documents_info,
-                    "format_instructions": self.parser.get_format_instructions()
-                })
-                parsed_output = self._parse_response(response.content)
+            print(f"📝 Generating documents with AI...")
+            print(f"Project query: {request.project_query or 'Unbekanntes Projekt'}")
+            print(f"Documents to generate: {len(request.required_documents)}")
+            
+            # Use direct JSON parsing (structured_output has compatibility issues with Pydantic v2)
+            chain = prompt | self.llm
+            response = chain.invoke({
+                "project_query": request.project_query or "Unbekanntes Projekt",
+                "chat_context": chat_context,
+                "foundation_context": foundation_context,
+                "documents_info": documents_info,
+                "format_instructions": self.parser.get_format_instructions()
+            })
+            
+            print(f"📄 Raw AI response length: {len(response.content)} characters")
+            parsed_output = self._parse_response(response.content)
+            print(f"✅ Successfully generated {len(parsed_output.documents)} documents")
             
             # Convert to GeneratedDocument objects
-            generated_docs = [
-                GeneratedDocument(
-                    document=doc.document,
-                    text=doc.text
+            generated_docs = []
+            for doc in parsed_output.documents:
+                # Ensure improvements are never empty
+                improvements = doc.improvements if doc.improvements else self._generate_fallback_improvements(doc.document)
+                generated_docs.append(
+                    GeneratedDocument(
+                        document=doc.document,
+                        text=doc.text,
+                        improvements=improvements
+                    )
                 )
-                for doc in parsed_output.documents
-            ]
             
             return generated_docs
             
         except Exception as e:
-            print(f"Error generating documents with Gemini: {e}")
+            print(f"❌ CRITICAL ERROR generating documents with Gemini: {e}")
             import traceback
             traceback.print_exc()
+            print(f"⚠️ Falling back to placeholder documents")
             # Fallback to placeholder if AI fails
             return self._generate_placeholder_documents(request.required_documents)
     
@@ -133,19 +142,26 @@ WICHTIGE RICHTLINIEN:
 8. Zeige die gesellschaftliche Wirkung und Nachhaltigkeit des Projekts auf
 
 **WICHTIG - UMGANG MIT FEHLENDEN INFORMATIONEN:**
-Wenn der Kontext nicht ausreichend ist, um einen Abschnitt vollständig auszufüllen:
-- Schreibe einen sinnvollen Entwurf basierend auf den verfügbaren Informationen
-- Füge KONKRETE, HILFREICHE FRAGEN in **fett** ein, die dem Nutzer helfen, die fehlenden Details zu ergänzen
-- Formatiere Fragen klar: ** [Spezifische Frage hier]**
-- Gib Beispiele oder Optionen an, wenn hilfreich
-- Stelle Fragen, die zu besseren, detaillierteren Antworten führen
+- Der HAUPTTEXT ("text") muss IMMER ein vollständiger, verwendbarer Entwurf sein
+- KEINE Platzhalter, KEINE [FRAGE: ...] im Haupttext
+- Schreibe sinnvolle, plausible Inhalte basierend auf dem verfügbaren Kontext
+- Bei fehlenden Details: Formuliere allgemein, aber professionell
 
-BEISPIEL für fehlende Information:
-"ZIELGRUPPE
+**VERBESSERUNGSVORSCHLÄGE ("improvements") - PFLICHTFELD:**
+- DU MUSST für JEDES Dokument GENAU 3 konkrete Verbesserungsvorschläge erstellen
+- Das improvements-Array darf NIEMALS leer sein
+- Wähle die 3 wichtigsten Verbesserungen aus
+- Jeder Vorschlag muss dem Nutzer helfen, den Entwurf zu präzisieren
+- Formuliere als klare, spezifische Handlungsaufforderungen
+- Gib konkrete Beispiele oder Orientierungshilfen
 
-Das Projekt richtet sich an [FRAGE: Welche spezifische Altersgruppe möchten Sie erreichen? (z.B. Kinder 6-12 Jahre, Jugendliche 13-18 Jahre)]
-
-Die Zielgruppe hat folgende Bedürfnisse: [FRAGE: Welche konkreten Herausforderungen oder Probleme hat Ihre Zielgruppe, die Ihr Projekt lösen möchte?]"
+BEISPIELE für gute Verbesserungsvorschläge:
+- "Präzisiere die Zielgruppe: Welche spezifische Altersgruppe soll erreicht werden? (z.B. Kinder 6-12 Jahre, Jugendliche 13-18)"
+- "Ergänze konkrete Erfolgsindikatoren: Wie viele Teilnehmer:innen sollen erreicht werden? Welche messbaren Veränderungen werden angestrebt?"
+- "Detailliere die Personalkosten: Welche Qualifikationen bringen die Projektmitarbeiter:innen mit? Wie hoch ist der Stundensatz?"
+- "Füge Informationen zur Zielgruppe hinzu: Wie viele Personen werden konkret erreicht? Welche Merkmale hat die Zielgruppe?"
+- "Ergänze messbare Projektergebnisse: Was sind die konkreten Outputs? Wie wird der Erfolg gemessen?"
+- "Spezifiziere den Zeitplan: Welche Meilensteine gibt es? Wann finden welche Aktivitäten statt?"
 
 DOKUMENT-TYPEN UND IHRE ANFORDERUNGEN:
 
@@ -194,29 +210,52 @@ BENÖTIGTE DOKUMENTE:
 {documents_info}
 
 AUFGABE:
-Erstelle für JEDES angeforderte Dokument einen vollständigen, professionellen Entwurf.
-Nutze die Informationen aus dem Chat-Verlauf, um das Projekt detailliert zu beschreiben.
-Passe die Inhalte an die Förderschwerpunkte und Anforderungen der Stiftung an.
+Erstelle für JEDES angeforderte Dokument:
+1. "text": Einen vollständigen, professionellen Entwurf OHNE Platzhalter oder Fragen
+2. "improvements": PFLICHTFELD - GENAU 3 konkrete Verbesserungsvorschläge
 
-WICHTIG - Bei fehlenden oder unklaren Informationen:
-- Schreibe trotzdem einen strukturierten Entwurf
-- Füge konkrete, hilfreiche Fragen ein mit dem Format: [FRAGE: Spezifische Frage]
-- Die Fragen sollten dem Nutzer helfen, die fehlenden Details zu ergänzen
-- Gib Beispiele oder Orientierungshilfen in den Fragen
+WICHTIG - Haupttext ("text"):
+- Muss KOMPLETT und VERWENDBAR sein
+- KEINE [FRAGE: ...] oder Platzhalter im Text
+- Schreibe plausible Inhalte basierend auf verfügbaren Informationen
+- Bei Unsicherheit: Formuliere allgemein, aber professionell
 
-Beispiele für gute Fragen:
-- [FRAGE: Wie viele Teilnehmer:innen sollen konkret erreicht werden? (z.B. 50 Kinder, 20 Jugendliche)]
-- [FRAGE: Welche Qualifikationen bringen die Projektmitarbeiter:innen mit? (z.B. Sozialpädagogik, Erfahrung in...)]
-- [FRAGE: Wie hoch sind die geschätzten Personalkosten für das Projekt? (Stundensatz x Stunden)]
-- [FRAGE: An welchem Datum soll das Projekt beginnen? Wie lange soll es laufen?]
+KRITISCH - Verbesserungen ("improvements") - PFLICHTFELD:
+- MUSS GENAU 3 konkrete Vorschläge enthalten
+- Das Array darf NIEMALS leer sein
+- Wähle die 3 wichtigsten Verbesserungen für dieses spezifische Dokument
+- Jeder Vorschlag muss spezifisch und umsetzbar sein
+- Formuliere als klare, direkte Fragen oder Handlungsaufforderungen
+- Gib konkrete Beispiele, wo es hilfreich ist
+
+Beispiele für gute Verbesserungsvorschläge:
+- "Präzisiere die Zielgruppe mit konkreten Zahlen: Wie viele Personen sollen erreicht werden? Welche Altersgruppe?"
+- "Ergänze messbare Projektziele: Welche konkreten Ergebnisse sollen bis wann erreicht werden?"
+- "Detailliere die Kostenplanung: Welche Personalkosten fallen an? (Stundensatz, Anzahl Stunden)"
+- "Spezifiziere den Zeitplan: Wann soll das Projekt starten? Wie lange ist die Laufzeit?"
+- "Füge Informationen zur Nachhaltigkeit hinzu: Wie wird das Projekt nach Förderungsende weitergeführt?"
+- "Konkretisiere die Evaluationsmethoden: Welche spezifischen Indikatoren werden gemessen?"
 
 FORMATIERUNG:
-- KEIN Markdown (keine #, **, -, *, |, etc.)
-- Überschriften in GROSSBUCHSTABEN
-- Struktur durch Absätze und Leerzeilen
-- Einfacher, klarer Text
+- Text: KEIN Markdown (keine #, **, -, *, |, etc.), Überschriften in GROSSBUCHSTABEN
+- Improvements: PFLICHTFELD - Jeder Eintrag ist ein separater String, IMMER GENAU 3 Einträge
 
-Antworte mit einem JSON-Objekt mit einer "documents" Liste. Jedes Dokument hat "document" (Typ) und "text" (Inhalt als Plain Text ohne Markdown)."""
+ANTWORTFORMAT - JSON:
+{{
+  "documents": [
+    {{
+      "document": "projektbeschreibung",
+      "text": "VOLLSTÄNDIGER TEXT HIER...",
+      "improvements": [
+        "Verbesserung 1 - konkret und umsetzbar",
+        "Verbesserung 2 - konkret und umsetzbar",
+        "Verbesserung 3 - konkret und umsetzbar"
+      ]
+    }}
+  ]
+}}
+
+WICHTIG: Das improvements-Array MUSS für JEDES Dokument GENAU 3 Einträge haben!"""
 
         return ChatPromptTemplate.from_messages([
             ("system", system_message),
@@ -351,6 +390,38 @@ Antworte mit einem JSON-Objekt mit einer "documents" Liste. Jedes Dokument hat "
         # Instead, just return as-is and let json.loads with strict=False handle it
         return json_str
     
+    def _generate_fallback_improvements(self, document_type: str) -> List[str]:
+        """Generate fallback improvements if AI doesn't provide any."""
+        improvements_map = {
+            "projektbeschreibung": [
+                "Präzisiere die Zielgruppe: Wie viele Personen werden konkret erreicht? Welche spezifischen Merkmale hat die Zielgruppe?",
+                "Ergänze messbare Erfolgsindikatoren: Welche konkreten, quantifizierbaren Ergebnisse werden angestrebt?",
+                "Detailliere den Zeitplan: Welche konkreten Meilensteine gibt es? Wann finden welche Aktivitäten statt?"
+            ],
+            "budgetplan": [
+                "Spezifiziere die Personalkosten: Welche Qualifikationen werden benötigt? Wie hoch sind die Stundensätze?",
+                "Füge Details zu Sachkosten hinzu: Welche spezifischen Posten fallen an? Welche Mengen werden benötigt?",
+                "Ergänze Informationen zum Eigenanteil: Wie hoch ist der Eigenanteil? Aus welchen Quellen stammt er?"
+            ],
+            "zeitplan": [
+                "Konkretisiere die Projektphasen: Welche spezifischen Aktivitäten finden in jeder Phase statt?",
+                "Füge Meilensteine hinzu: Welche messbaren Zwischenergebnisse markieren den Fortschritt?",
+                "Ergänze Pufferzeiten: Wo sollten Zeitreserven für unvorhergesehene Verzögerungen eingeplant werden?"
+            ],
+            "evaluation": [
+                "Definiere konkrete Indikatoren: Welche spezifischen, messbaren Kennzahlen werden erhoben?",
+                "Spezifiziere Messmethoden: Wie genau werden die Daten gesammelt und ausgewertet?",
+                "Ergänze den Evaluationszeitplan: Wann finden Zwischen- und Endevaluationen statt?"
+            ]
+        }
+        
+        # Return specific improvements for the document type, or generic ones
+        return improvements_map.get(document_type.lower(), [
+            "Füge spezifische Details hinzu: Welche konkreten Informationen fehlen noch?",
+            "Ergänze messbare Angaben: Wie können die Aussagen quantifiziert werden?",
+            "Präzisiere die Beschreibungen: Wo können allgemeine Formulierungen konkretisiert werden?"
+        ])
+    
     def _generate_placeholder_documents(
         self, 
         documents: List[RequiredDocumentInput]
@@ -361,7 +432,93 @@ Antworte mit einem JSON-Objekt mit einer "documents" Liste. Jedes Dokument hat "
             placeholders.append(
                 GeneratedDocument(
                     document=doc.document_type,
-                    text=f"{doc.document_type.upper()}\n\n{doc.description}\n\nBitte füllen Sie dieses Dokument manuell aus."
+                    text=f"{doc.document_type.upper()}\n\n{doc.description}\n\nBitte füllen Sie dieses Dokument manuell aus.",
+                    improvements=self._generate_fallback_improvements(doc.document_type)
                 )
             )
         return placeholders
+    
+    async def proofread_document(
+        self,
+        document_text: str,
+        document_type: str,
+        existing_improvements: List[str] = None
+    ) -> List[str]:
+        """
+        Generate new improvement suggestions for an existing document.
+        
+        Args:
+            document_text: The current document text
+            document_type: The type of document
+            existing_improvements: Previously suggested improvements (optional)
+            
+        Returns:
+            List of new improvement suggestions
+        """
+        system_message = """Du bist ein erfahrener Lektor und Experte für Stiftungsanträge.
+Deine Aufgabe ist es, konstruktive Verbesserungsvorschläge für Antragsunterlagen zu geben.
+
+RICHTLINIEN:
+1. Analysiere den Text auf Verbesserungspotenziale
+2. Fokussiere auf: Klarheit, Präzision, Überzeugungskraft, Vollständigkeit
+3. Gib GENAU 3 konkrete Verbesserungsvorschläge
+4. Jeder Vorschlag sollte umsetzbar und spezifisch sein
+5. Vermeide bereits gemachte Vorschläge
+6. Priorisiere die 3 wichtigsten Verbesserungen"""
+
+        human_message = f"""Analysiere folgenden Text und gib neue Verbesserungsvorschläge:
+
+DOKUMENTTYP: {document_type}
+
+TEXT:
+{document_text}
+
+{f'''BEREITS VORHANDENE VORSCHLÄGE (nicht wiederholen):
+{chr(10).join(f"- {imp}" for imp in existing_improvements)}
+''' if existing_improvements else ''}
+
+Gib GENAU 3 neue, konkrete Verbesserungsvorschläge.
+Antworte mit einem JSON-Objekt im Format:
+{{{{"improvements": ["Vorschlag 1", "Vorschlag 2", "Vorschlag 3"]}}}}"""
+
+        try:
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_message),
+                ("human", human_message)
+            ])
+            
+            chain = prompt | self.llm
+            response = chain.invoke({})
+            
+            # Parse response
+            content = response.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith("```json"):
+                content = content[7:]
+            elif content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            
+            content = content.strip()
+            
+            # Find JSON
+            start_idx = content.find("{")
+            end_idx = content.rfind("}") + 1
+            
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = content[start_idx:end_idx]
+                data = json.loads(json_str, strict=False)
+                
+                improvements = data.get("improvements", [])
+                # Limit to 3 improvements
+                return improvements[:3]
+            
+            return []
+            
+        except Exception as e:
+            print(f"Error in proofread_document: {e}")
+            import traceback
+            traceback.print_exc()
+            return []

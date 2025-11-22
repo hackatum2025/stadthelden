@@ -251,6 +251,7 @@ export type GenerateDocumentsRequest = {
 export type GeneratedDocument = {
   document: string;  // document_type
   text: string;      // generated content
+  improvements?: string[];  // list of improvement suggestions
 };
 
 export type GenerateDocumentsResponse = {
@@ -279,6 +280,42 @@ export const generateDocuments = async (
     return await response.json();
   } catch (error) {
     console.error("Error generating documents:", error);
+    return null;
+  }
+};
+
+// Proofread document and get improvement suggestions
+export type ProofreadDocumentRequest = {
+  document_text: string;
+  document_type: string;
+  existing_improvements?: string[];
+};
+
+export type ProofreadDocumentResponse = {
+  success: boolean;
+  improvements: string[];
+  message?: string;
+};
+
+export const proofreadDocument = async (
+  request: ProofreadDocumentRequest
+): Promise<ProofreadDocumentResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/documents/proofread`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error proofreading document:", error);
     return null;
   }
 };

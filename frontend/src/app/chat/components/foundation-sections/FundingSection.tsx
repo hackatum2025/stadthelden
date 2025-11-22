@@ -22,20 +22,20 @@ export const FundingSection = ({ foerderhoehe }: FundingSectionProps) => {
         <div className="flex justify-between items-baseline">
           <span className="text-sm font-medium text-gray-900">
             {foerderhoehe.min_amount.toLocaleString('de-DE')} € - {foerderhoehe.max_amount.toLocaleString('de-DE')} €
-          </span>
+            </span>
         </div>
-        
+
         {/* Bar with highlighted range */}
         <div className="relative h-5 bg-blue-100 rounded-full overflow-hidden">
           {/* Highlighted funding range */}
-          <div 
+              <div 
             className="absolute h-full bg-[#1b98d5] rounded-full"
-            style={{ 
+                style={{ 
               left: `${(foerderhoehe.min_amount / 50000) * 100}%`,
               width: `${((foerderhoehe.max_amount - foerderhoehe.min_amount) / 50000) * 100}%`
-            }}
-          ></div>
-        </div>
+                }}
+              ></div>
+            </div>
         
         {/* Scale labels */}
         <div className="flex justify-between text-xs text-gray-500">

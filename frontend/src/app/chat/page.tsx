@@ -91,12 +91,12 @@ export default function ChatPage() {
           </div>
         )}
         {/* Main chat area */}
-        <main className={`flex flex-1 items-center justify-center transition-all duration-[2000ms] overflow-hidden ${
-          showSplitView ? 'px-2 py-2' : 'px-4 py-8'
+        <main className={`flex flex-1 transition-all duration-[2000ms] overflow-hidden ${
+          showSplitView ? 'px-2 py-2' : 'px-4 py-8 items-center justify-center'
         }`}>
           <div 
             className={`flex flex-col w-full transition-all duration-[1500ms] ${
-              showSplitView ? 'max-w-full h-full justify-end' : 'max-w-4xl'
+              showSplitView ? 'max-w-full h-full' : 'max-w-4xl'
             }`}
           >
             {/* Hero Section and Input grouped together when showing hero */}
@@ -124,14 +124,14 @@ export default function ChatPage() {
                 )}
 
                 {/* Chat Messages */}
-                <div className={`w-full flex-1 transition-all duration-[2000ms] ${
-                  showSplitView ? 'px-2 overflow-y-auto' : 'px-4'
+                <div className={`w-full flex-1 transition-all duration-[2000ms] overflow-y-auto min-h-0 ${
+                  showSplitView ? 'px-2' : 'px-4'
                 } animate-fadeIn`}>
                   <ChatMessages messages={messages} isLoading={isLoading} />
                 </div>
 
                 {/* Input with Send Button */}
-                <div className={`w-full transition-all duration-[2000ms] ${
+                <div className={`w-full flex-shrink-0 transition-all duration-[2000ms] ${
                   showSplitView ? 'px-2 mt-2' : 'px-4 mt-4'
                 }`}>
                   <ChatInput

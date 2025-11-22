@@ -24,10 +24,23 @@ class GeneratedDocument(BaseModel):
     """A generated document with its content."""
     document: str  # document_type
     text: str      # generated content
+    improvements: List[str] = []  # list of improvement suggestions
 
 class GenerateDocumentsResponse(BaseModel):
     """Response containing generated documents."""
     success: bool
     documents: List[GeneratedDocument]
+    message: Optional[str] = None
+
+class ProofreadDocumentRequest(BaseModel):
+    """Request to proofread a document and get improvement suggestions."""
+    document_text: str
+    document_type: str
+    existing_improvements: Optional[List[str]] = None
+
+class ProofreadDocumentResponse(BaseModel):
+    """Response containing new improvement suggestions."""
+    success: bool
+    improvements: List[str]
     message: Optional[str] = None
 

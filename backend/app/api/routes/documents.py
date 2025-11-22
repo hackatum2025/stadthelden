@@ -5,7 +5,9 @@ Document generation API endpoints.
 from fastapi import APIRouter, HTTPException
 from app.models.document_generation import (
     GenerateDocumentsRequest,
-    GenerateDocumentsResponse
+    GenerateDocumentsResponse,
+    ProofreadDocumentRequest,
+    ProofreadDocumentResponse
 )
 from app.services.document_generation_service import DocumentGenerationService
 
@@ -59,5 +61,50 @@ async def generate_documents(request: GenerateDocumentsRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate documents: {str(e)}"
+        )
+
+
+@router.post("/proofread", response_model=ProofreadDocumentResponse)
+async def proofread_document(request: ProofreadDocumentRequest):
+    """
+    Proofread a document and generate new improvement suggestions.
+    
+    Analyzes the given document text and provides concrete suggestions
+    for improvement, avoiding duplication of existing suggestions.
+    
+    Request body:
+    - document_text: The current document content
+    - document_type: Type of document (e.g., "projektbeschreibung")
+    - existing_improvements: Previously suggested improvements (optional)
+    
+    Returns:
+    - List of new improvement suggestions (max 5)
+    
+    Example:
+    ```
+    {
+      "document_text": "Das Projekt zielt darauf ab...",
+      "document_type": "projektbeschreibung",
+      "existing_improvements": ["Vorschlag 1", "Vorschlag 2"]
+    }
+    ```
+    """
+    try:
+        service = DocumentGenerationService()
+        improvements = await service.proofread_document(
+            document_text=request.document_text,
+            document_type=request.document_type,
+            existing_improvements=request.existing_improvements
+        )
+        
+        return ProofreadDocumentResponse(
+            success=True,
+            improvements=improvements,
+            message=f"Generated {len(improvements)} improvement suggestion(s)"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to proofread document: {str(e)}"
         )
 
