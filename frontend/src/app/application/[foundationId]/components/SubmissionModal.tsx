@@ -118,13 +118,13 @@ Mit freundlichen Grüßen`
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              className="cursor-pointer px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
             >
               Abbrechen
             </button>
             <button
               onClick={onSubmit}
-              className="px-6 py-2 bg-gradient-to-r from-[#1b98d5] to-[#0065bd] text-white rounded-lg hover:shadow-lg transition-all font-medium"
+              className="cursor-pointer px-6 py-2 bg-gradient-to-r from-[#1b98d5] to-[#0065bd] text-white rounded-lg hover:shadow-lg transition-all font-medium"
             >
               Jetzt absenden
             </button>
