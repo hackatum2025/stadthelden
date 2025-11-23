@@ -1,4 +1,4 @@
-import type { Foundation } from "./FoundationCard";
+import type { Foundation, MatchItem } from "./FoundationCard";
 import { MatchScoreSection } from "./foundation-sections/MatchScoreSection";
 import { OrganizationSection } from "./foundation-sections/OrganizationSection";
 import { PurposesSection } from "./foundation-sections/PurposesSection";
@@ -14,13 +14,108 @@ type FoundationCardExpandedProps = {
   onStartApplication: () => void;
 };
 
-export const FoundationCardExpanded = ({ 
-  foundation, 
+const MatchIcon = ({ type }: { type: MatchItem["type"] }) => {
+  if (type === "fit") {
+    return (
+      <svg className="w-5 h-5 flex-shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    );
+  }
+  if (type === "mismatch") {
+    return (
+      <svg className="w-5 h-5 flex-shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="w-5 h-5 flex-shrink-0 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  );
+};
+
+export const FoundationCardExpanded = ({
+  foundation,
   onToggleExpand,
-  onStartApplication 
+  onStartApplication
 }: FoundationCardExpandedProps) => {
+  const fits = foundation.matches.filter((m) => m.type === "fit");
+  const mismatches = foundation.matches.filter((m) => m.type === "mismatch");
+  const questions = foundation.matches.filter((m) => m.type === "question");
+
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* Match Analysis Section - All Items */}
+      <div className="border-t pt-6">
+        <h4 className="text-xl font-bold text-gray-900 mb-4">Match-Analyse</h4>
+        <div className="grid grid-cols-3 gap-4">
+          {/* Fits */}
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+            <div className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Passt gut
+            </div>
+            <div className="space-y-2">
+              {fits.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <MatchIcon type="fit" />
+                  <span className="text-xs text-gray-700">{item.text}</span>
+                </div>
+              ))}
+              {fits.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Keine Angaben</p>
+              )}
+            </div>
+          </div>
+
+          {/* Questions */}
+          <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+            <div className="text-sm font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Zu klären
+            </div>
+            <div className="space-y-2">
+              {questions.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <MatchIcon type="question" />
+                  <span className="text-xs text-gray-700">{item.text}</span>
+                </div>
+              ))}
+              {questions.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Keine Angaben</p>
+              )}
+            </div>
+          </div>
+
+          {/* Mismatches */}
+          <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+            <div className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Achtung
+            </div>
+            <div className="space-y-2">
+              {mismatches.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <MatchIcon type="mismatch" />
+                  <span className="text-xs text-gray-700">{item.text}</span>
+                </div>
+              ))}
+              {mismatches.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Keine Angaben</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Additional Details Section */}
       <div className="border-t pt-6">
         <h4 className="text-2xl font-bold text-gray-900 mb-6">Detaillierte Informationen</h4>

@@ -85,20 +85,20 @@ export type Foundation = {
 const MatchIcon = ({ type }: { type: MatchItem["type"] }) => {
   if (type === "fit") {
     return (
-      <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-5 h-5 flex-shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
       </svg>
     );
   }
   if (type === "mismatch") {
     return (
-      <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-5 h-5 flex-shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
       </svg>
     );
   }
   return (
-    <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-5 h-5 flex-shrink-0 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
     </svg>
   );
@@ -219,41 +219,62 @@ export const FoundationCard = ({
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             {/* Fits */}
-            <div>
+            <div className="flex flex-col">
               <div className="text-xs font-medium text-green-700 mb-2">Passt gut</div>
-              <div className="space-y-1">
-                {fits.map((item, idx) => (
+              <div className="space-y-1 flex-1">
+                {fits.slice(0, 2).map((item, idx) => (
                   <div key={idx} className="flex items-start gap-2">
                     <MatchIcon type="fit" />
                     <span className="text-xs text-gray-700">{item.text}</span>
                   </div>
                 ))}
               </div>
+              <div className="h-6 flex items-end mt-2">
+                {fits.length > 2 && (
+                  <div className="text-xs text-green-600 font-medium">
+                    +{fits.length - 2} weitere
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Questions */}
+            <div className="flex flex-col">
+              <div className="text-xs font-medium text-yellow-700 mb-2">Zu klären</div>
+              <div className="space-y-1 flex-1">
+                {questions.slice(0, 2).map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <MatchIcon type="question" />
+                    <span className="text-xs text-gray-700">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="h-6 flex items-end mt-2">
+                {questions.length > 2 && (
+                  <div className="text-xs text-yellow-600 font-medium">
+                    +{questions.length - 2} weitere
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Mismatches */}
-            <div>
+            <div className="flex flex-col">
               <div className="text-xs font-medium text-red-700 mb-2">Achtung</div>
-              <div className="space-y-1">
-                {mismatches.map((item, idx) => (
+              <div className="space-y-1 flex-1">
+                {mismatches.slice(0, 2).map((item, idx) => (
                   <div key={idx} className="flex items-start gap-2">
                     <MatchIcon type="mismatch" />
                     <span className="text-xs text-gray-700">{item.text}</span>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Questions */}
-            <div>
-              <div className="text-xs font-medium text-yellow-700 mb-2">Zu klären</div>
-              <div className="space-y-1">
-                {questions.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <MatchIcon type="question" />
-                    <span className="text-xs text-gray-700">{item.text}</span>
+              <div className="h-6 flex items-end mt-2">
+                {mismatches.length > 2 && (
+                  <div className="text-xs text-red-600 font-medium">
+                    +{mismatches.length - 2} weitere
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

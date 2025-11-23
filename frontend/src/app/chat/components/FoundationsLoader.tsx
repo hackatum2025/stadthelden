@@ -1,25 +1,25 @@
+import { FoundationCardSkeleton } from "./FoundationCardSkeleton";
+
 export function FoundationsLoader({ message = "Lade Stiftungen" }: { message?: string }) {
   return (
-    <div className="h-full overflow-y-auto bg-slate-50 p-8 flex items-center justify-center">
-      <div className="text-center animate-fadeIn">
-        <div className="mb-8">
-          <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 border-4 border-[#1b98d5]/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-[#1b98d5] rounded-full border-t-transparent animate-spin"></div>
-            <div className="absolute inset-3 border-4 border-[#0065bd]/30 rounded-full border-b-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+    <div className="h-full overflow-y-auto bg-slate-50 p-8">
+      {/* Header Skeleton */}
+      <div className="mb-8 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded-md mb-2 w-2/3" />
+        <div className="h-5 bg-gray-200 rounded-md w-1/2" />
+      </div>
+
+      {/* Foundation Card Skeletons */}
+      <div className="space-y-0">
+        {[...Array(5)].map((_, index) => (
+          <div
+            key={index}
+            style={{ animationDelay: `${index * 100}ms` }}
+            className="animate-fadeIn"
+          >
+            <FoundationCardSkeleton />
           </div>
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
-          {message}
-        </h2>
-        <p className="text-gray-600">
-          Einen Moment bitte
-        </p>
-        <div className="mt-6 flex justify-center gap-2">
-          <span className="w-2.5 h-2.5 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-          <span className="w-2.5 h-2.5 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
-          <span className="w-2.5 h-2.5 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></span>
-        </div>
+        ))}
       </div>
     </div>
   );

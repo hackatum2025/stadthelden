@@ -1,4 +1,47 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { FoundationCardSkeleton } from "./FoundationCardSkeleton";
+
 export const ProjectAnalysisLoader = () => {
+  const [showSkeletons, setShowSkeletons] = useState(false);
+
+  useEffect(() => {
+    // After 10 seconds, switch to skeleton cards
+    const timer = setTimeout(() => {
+      setShowSkeletons(true);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSkeletons) {
+    // Show skeleton cards after 10 seconds
+    return (
+      <div className="h-full overflow-y-auto bg-slate-50 p-8">
+        {/* Header Skeleton */}
+        <div className="mb-8 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded-md mb-2 w-2/3" />
+          <div className="h-5 bg-gray-200 rounded-md w-1/2" />
+        </div>
+
+        {/* Foundation Card Skeletons */}
+        <div className="space-y-0">
+          {[...Array(5)].map((_, index) => (
+            <div
+              key={index}
+              style={{ animationDelay: `${index * 100}ms` }}
+              className="animate-fadeIn"
+            >
+              <FoundationCardSkeleton />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show spinner for first 10 seconds
   return (
     <div className="flex items-center justify-center h-full bg-slate-50">
       <div className="text-center animate-fadeIn">
