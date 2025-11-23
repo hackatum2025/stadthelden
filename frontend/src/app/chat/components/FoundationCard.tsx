@@ -104,11 +104,11 @@ const MatchIcon = ({ type }: { type: MatchItem["type"] }) => {
   );
 };
 
-export const FoundationCard = ({ 
+export const FoundationCard = ({
   foundation,
   isExpanded,
   onToggleExpand
-}: { 
+}: {
   foundation: Foundation;
   isExpanded: boolean;
   onToggleExpand: () => void;
@@ -123,18 +123,76 @@ export const FoundationCard = ({
   };
 
   return (
-    <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-500 p-6 ${
-      isExpanded ? '' : 'mb-4'
-    } animate-fadeIn`}>
+    <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-500 p-6 ${isExpanded ? '' : 'mb-4'
+      } animate-fadeIn`}>
       {/* Header */}
       <div className="flex items-start gap-4 mb-4">
-        <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gradient-to-br from-[#1b98d5] to-[#0065bd] p-2">
-          <Image src={foundation.logo} alt={foundation.name} width={64} height={64} className="w-full h-full" />
+        <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-white border-2 border-[#1b98d5] p-2">
+          <Image src={foundation.logo} alt={foundation.name} width={80} height={80} className="w-full h-full" />
         </div>
         <div className="flex-1">
           <h3 className="text-xl font-bold text-gray-900 mb-1">{foundation.name}</h3>
           <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-            {foundation.purpose}
+            {(() => {
+              switch (foundation.purpose) {
+                case "die Förderung von Wissenschaft und Forschung":
+                  return "Wissenschaft und Forschung";
+                case "die Förderung der Religion":
+                  return "Religion";
+                case "die Förderung des öffentlichen Gesundheitswesens und der öffentlichen Gesundheitspflege, insbesondere die Verhütung und Bekämpfung von übertragbaren Krankheiten, auch durch Krankenhäuser im Sinne des § 67, und von Tierseuchen":
+                  return "Öffentliches Gesundheitswesen";
+                case "die Förderung der Jugend- und Altenhilfe":
+                  return "Jugend- und Altenhilfe";
+                case "die Förderung von Kunst und Kultur":
+                  return "Kunst und Kultur";
+                case "die Förderung des Denkmalschutzes und der Denkmalpflege":
+                  return "Denkmalschutz und Denkmalpflege";
+                case "die Förderung der Erziehung, Volks- und Berufsbildung einschließlich der Studentenhilfe":
+                  return "Bildung und Erziehung";
+                case "die Förderung des Naturschutzes und der Landschaftspflege im Sinne des Bundesnaturschutzgesetzes und der Naturschutzgesetze der Länder, des Umweltschutzes, einschließlich des Klimaschutzes, des Küstenschutzes und des Hochwasserschutzes":
+                  return "Natur- und Umweltschutz";
+                case "die Förderung des Wohlfahrtswesens, insbesondere der Zwecke der amtlich anerkannten Verbände der freien Wohlfahrtspflege (§ 23 der Umsatzsteuer-Durchführungsverordnung), ihrer Unterverbände und ihrer angeschlossenen Einrichtungen und Anstalten":
+                  return "Wohlfahrtswesen";
+                case "die Förderung der Hilfe für politisch, rassistisch oder religiös Verfolgte, für Flüchtlinge, Vertriebene, Aussiedler, Spätaussiedler, Kriegsopfer, Kriegshinterbliebene, Kriegsbeschädigte und Kriegsgefangene, Zivilbeschädigte und Behinderte sowie Hilfe für Opfer von Straftaten; Förderung des Andenkens an Verfolgte, Kriegs- und Katastrophenopfer; Förderung des Suchdienstes für Vermisste, Förderung der Hilfe für Menschen, die auf Grund ihrer geschlechtlichen Identität oder ihrer geschlechtlichen Orientierung diskriminiert werden":
+                  return "Hilfe für Verfolgte und Opfer";
+                case "die Förderung der Rettung aus Lebensgefahr":
+                  return "Rettung aus Lebensgefahr";
+                case "die Förderung des Feuer-, Arbeits-, Katastrophen- und Zivilschutzes sowie der Unfallverhütung":
+                  return "Katastrophen- und Zivilschutz";
+                case "die Förderung internationaler Gesinnung, der Toleranz auf allen Gebieten der Kultur und des Völkerverständigungsgedankens":
+                  return "Internationale Zusammenarbeit";
+                case "die Förderung des Tierschutzes":
+                  return "Tierschutz";
+                case "die Förderung der Entwicklungszusammenarbeit":
+                  return "Entwicklungszusammenarbeit";
+                case "die Förderung von Verbraucherberatung und Verbraucherschutz":
+                  return "Verbraucherschutz";
+                case "die Förderung der Fürsorge für Strafgefangene und ehemalige Strafgefangene":
+                  return "Fürsorge für Strafgefangene";
+                case "die Förderung der Gleichberechtigung von Frauen und Männern":
+                  return "Gleichberechtigung";
+                case "die Förderung des Schutzes von Ehe und Familie":
+                  return "Schutz von Ehe und Familie";
+                case "die Förderung der Kriminalprävention":
+                  return "Kriminalprävention";
+                case "die Förderung des Sports (Schach gilt als Sport)":
+                  return "Sport";
+                case "die Förderung der Heimatpflege, Heimatkunde und der Ortsverschönerung":
+                  return "Heimatpflege";
+                case "die Förderung der Tierzucht, der Pflanzenzucht, der Kleingärtnerei, des traditionellen Brauchtums einschließlich des Karnevals, der Fastnacht und des Faschings, der Soldaten- und Reservistenbetreuung, des Amateurfunkens, des Freifunks, des Modellflugs und des Hundesports":
+                  return "Brauchtum und Tradition";
+                case "die allgemeine Förderung des demokratischen Staatswesens im Geltungsbereich dieses Gesetzes; hierzu gehören nicht Bestrebungen, die nur bestimmte Einzelinteressen staatsbürgerlicher Art verfolgen oder die auf den kommunalpolitischen Bereich beschränkt sind":
+                  return "Demokratisches Staatswesen";
+                case "die Förderung des bürgerschaftlichen Engagements zugunsten gemeinnütziger, mildtätiger und kirchlicher Zwecke":
+                  return "Bürgerschaftliches Engagement";
+                case "die Förderung der Unterhaltung und Pflege von Friedhöfen und die Förderung der Unterhaltung von Gedenkstätten für nichtbestattungspflichtige Kinder und Föten":
+                  return "Friedhofspflege";
+                case "die Förderung wohngemeinnütziger Zwecke; dies ist die vergünstigte Wohnraumüberlassung an Personen im Sinne des § 53. § 53 Nummer 2 ist mit der Maßgabe anzuwenden, dass die Bezüge nicht höher sein dürfen als das Fünffache des Regelsatzes der Sozialhilfe im Sinne des § 28 des Zwölften Buches Sozialgesetzbuch; beim Alleinstehenden oder Alleinerziehenden tritt an die Stelle des Fünffachen das Sechsfache des Regelsatzes. Die Hilfebedürftigkeit muss zu Beginn des jeweiligen Mietverhältnisses vorliegen":
+                  return "Bezahlbarer Wohnraum";
+                default:
+                  return foundation.purpose;
+              }
+            })()}
           </span>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -151,7 +209,7 @@ export const FoundationCard = ({
 
       {/* Expanded Content */}
       {isExpanded ? (
-        <FoundationCardExpanded 
+        <FoundationCardExpanded
           foundation={foundation}
           onToggleExpand={onToggleExpand}
           onStartApplication={handleStartApplication}
@@ -199,7 +257,7 @@ export const FoundationCard = ({
               </div>
             </div>
           </div>
-          
+
           {/* Details Button */}
           {!isExpanded && (
             <div className="mt-6 pt-4 border-t border-gray-200">

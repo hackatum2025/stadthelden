@@ -36,9 +36,16 @@ export default function ApplicationPage() {
 
   useEffect(() => {
     const fetchFoundationAndGenerateDrafts = async () => {
+      // Need a session to fetch foundation scores
+      if (!sessionId) {
+        console.error("❌ No session ID available");
+        setLoading(false);
+        return;
+      }
+
       try {
         // Fetch foundation details
-        const response = await getFoundationScores(undefined, 5);
+        const response = await getFoundationScores(sessionId, 5);
         if (response && response.success && response.foundations) {
           const found = response.foundations.find((f: any) => f.id === foundationId);
           if (found) {
@@ -149,7 +156,7 @@ export default function ApplicationPage() {
     };
 
     fetchFoundationAndGenerateDrafts();
-  }, [foundationId, router, chatMessages, projectQuery, applicationDocuments]);
+  }, [sessionId, foundationId, router, chatMessages, projectQuery, applicationDocuments, setCurrentFoundationId]);
 
   const handleBack = () => {
     router.back();

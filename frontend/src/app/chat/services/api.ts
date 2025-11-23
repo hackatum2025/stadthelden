@@ -76,14 +76,22 @@ export const getFoundations = async () => {
 };
 
 // Get foundations with match scores
-export const getFoundationScores = async (query?: string, limit: number = 5) => {
+export const getFoundationScores = async (sessionId: string, limit: number = 5) => {
   try {
     const params = new URLSearchParams();
-    if (query) params.append("query", query);
     params.append("limit", limit.toString());
 
     const response = await fetch(
-      `${API_BASE_URL}/api/v1/foundations/scores?${params.toString()}`
+      `${API_BASE_URL}/api/v1/foundations/scores?${params.toString()}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+        }),
+      }
     );
 
     if (!response.ok) {
@@ -232,11 +240,11 @@ export const updateApplicationDocuments = async (
         body: JSON.stringify({ documents }),
       }
     );
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error updating application documents:", error);
@@ -351,11 +359,11 @@ export const proofreadDocument = async (
       },
       body: JSON.stringify(request),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error proofreading document:", error);

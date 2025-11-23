@@ -8,22 +8,39 @@ import { EmptyState } from "./EmptyState";
 import { FoundationCard, type Foundation } from "./FoundationCard";
 import { useSession } from "../context/SessionContext";
 
+// Helper function to get favicon URL from website URL
+const getFaviconUrl = (websiteUrl: string | undefined, logo: string): string => {
+  if (!websiteUrl) {
+    return logo; // fallback to default logo
+  }
+
+  try {
+    const url = new URL(websiteUrl);
+    const domain = url.hostname;
+    // Using Google's favicon service for reliable favicon fetching
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+  } catch (error) {
+    console.warn("Invalid website URL:", websiteUrl);
+    return logo; // fallback to default logo
+  }
+};
+
 export function ResultsView() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [foundations, setFoundations] = useState<Foundation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { foundationResults: sessionResults, setFoundationResults } = useSession();
+  const { sessionId, foundationResults: sessionResults, setFoundationResults } = useSession();
 
   useEffect(() => {
     // Check if we have session data first
     if (sessionResults && sessionResults.length > 0) {
       console.log("✅ Restoring foundations from session:", sessionResults.length);
-      
+
       const mappedFoundations: Foundation[] = sessionResults.map((f: any) => ({
         id: f.id,
         name: f.name,
-        logo: f.logo,
+        logo: getFaviconUrl(f.website, f.logo),
         purpose: f.purpose,
         description: f.description,
         fundingAmount: f.funding_amount,
@@ -39,7 +56,7 @@ export function ResultsView() {
         pastProjects: f.past_projects,
         website: f.website,
       }));
-      
+
       setFoundations(mappedFoundations);
       setIsLoading(false);
       return;
@@ -47,15 +64,22 @@ export function ResultsView() {
 
     // Fetch real data from backend if no session data
     const fetchFoundations = async () => {
+      // Need a session to fetch foundation scores
+      if (!sessionId) {
+        setError("Keine Session gefunden. Bitte starte einen Chat.");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const response = await getFoundationScores(undefined, 5);
-        
+        const response = await getFoundationScores(sessionId, 5);
+
         if (response && response.success && response.foundations) {
           // Map backend data to frontend Foundation type
           const mappedFoundations: Foundation[] = response.foundations.map((f: any) => ({
             id: f.id,
             name: f.name,
-            logo: f.logo,
+            logo: getFaviconUrl(f.website, f.logo),
             purpose: f.purpose,
             description: f.description,
             fundingAmount: f.funding_amount,
@@ -72,7 +96,7 @@ export function ResultsView() {
             pastProjects: f.past_projects,
             website: f.website,
           }));
-          
+
           setFoundations(mappedFoundations);
           setFoundationResults(response.foundations); // Save to session
           console.log("✅ Loaded foundations from backend:", mappedFoundations);
@@ -89,7 +113,7 @@ export function ResultsView() {
     };
 
     fetchFoundations();
-  }, [sessionResults, setFoundationResults]);
+  }, [sessionId, sessionResults, setFoundationResults]);
 
   const handleToggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -128,7 +152,7 @@ export function ResultsView() {
         {foundations.map((foundation, index) => {
           const isExpanded = expandedId === foundation.id;
           const shouldShow = !isAnyExpanded || isExpanded;
-          
+
           if (!shouldShow) return null;
 
           return (
@@ -136,8 +160,8 @@ export function ResultsView() {
               key={foundation.id}
               style={{ animationDelay: isAnyExpanded ? '0ms' : `${index * 100}ms` }}
             >
-              <FoundationCard 
-                foundation={foundation} 
+              <FoundationCard
+                foundation={foundation}
                 isExpanded={isExpanded}
                 onToggleExpand={() => handleToggleExpand(foundation.id)}
               />
