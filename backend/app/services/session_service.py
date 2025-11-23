@@ -123,7 +123,7 @@ class SessionService:
                 traceback.print_exc()
                 # Still add it but with empty application_documents
                 session_doc["application_documents"] = {}
-                sessions.append(SessionData(**session_doc))
+            sessions.append(SessionData(**session_doc))
         
         return sessions
     

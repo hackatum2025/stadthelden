@@ -32,16 +32,36 @@ export const PurposesSection = ({ purposes }: PurposesSectionProps) => {
   const leftColumn = purposes.slice(0, midpoint);
   const rightColumn = purposes.slice(midpoint);
 
-  const renderCard = (zweck: string, idx: number) => (
-    <div key={idx} className="bg-white p-3 rounded-lg flex items-start gap-3 shadow-sm mb-3">
-      <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
-        <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          {getPurposeIcon(zweck)}
-        </svg>
+  const renderCard = (zweck: string, idx: number) => {
+    const maxLength = 120; // Maximum characters before truncation
+    const isLong = zweck.length > maxLength;
+    
+    return (
+      <div 
+        key={idx} 
+        className="bg-white p-3 rounded-lg flex items-start gap-3 shadow-sm mb-3 group relative transition-all duration-300 hover:shadow-lg hover:z-10 cursor-pointer"
+      >
+        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mt-0.5 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-200">
+          <svg className="w-5 h-5 text-blue-600 transition-colors duration-300 group-hover:text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {getPurposeIcon(zweck)}
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          {/* Text that expands on hover */}
+          <div 
+            className={`text-sm font-medium text-gray-900 ${
+              isLong 
+                ? 'purpose-text-expand' 
+                : ''
+            }`}
+            title={isLong ? zweck : undefined}
+          >
+            {zweck}
+          </div>
+        </div>
       </div>
-      <span className="text-sm font-medium text-gray-900 flex-1">{zweck}</span>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">

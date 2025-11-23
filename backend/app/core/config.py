@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     REQUESTY_API_KEY: str
     REQUESTY_BASE_URL: str = "https://router.requesty.ai/v1"
     
+    # Gemini API
+    GEMINI_API_KEY: str
+    
     # CORS Origins - comma-separated string
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
     
