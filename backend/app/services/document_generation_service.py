@@ -74,20 +74,90 @@ class DocumentGenerationService:
         
         # Generate documents using modern LangChain structured output
         try:
+            # Prepare prompt variables
+            project_query_text = request.project_query or "Unbekanntes Projekt"
+            prompt_variables = {
+                "project_query": project_query_text,
+                "chat_context": chat_context,
+                "foundation_context": foundation_context,
+                "documents_info": documents_info
+            }
+            
+            # Format the full prompt for logging
+            system_message = """Du erstellst professionelle Stiftungsanträge auf Deutsch.
+
+FORMAT:
+- PLAIN TEXT (kein Markdown: keine #, **, -, *, |)
+- Überschriften in GROSSBUCHSTABEN
+- Struktur durch Absätze und Zeilenumbrüche
+
+HAUPTTEXT ("text"):
+- Vollständiger, verwendbarer Entwurf
+- KEINE Platzhalter oder [FRAGE: ...]
+- Bei fehlenden Infos: allgemein, aber professionell formulieren
+
+VERBESSERUNGEN ("improvements") - PFLICHT:
+- GENAU 3 konkrete Vorschläge pro Dokument
+- Array darf NIEMALS leer sein
+- Formuliere als klare Handlungsaufforderungen mit Beispielen
+
+DOKUMENTE:
+- PROJEKTBESCHREIBUNG: Titel, Problem, Zielgruppe, SMART-Ziele, Methodik, Wirkung, Nachhaltigkeit
+- BUDGETPLAN: Tabellarisch (Leerzeichen), Gesamtkosten, Eigenanteil, Förderung
+- ZEITPLAN: Phasen mit Monaten, Meilensteine, Evaluation
+- EVALUATION: Messbare Indikatoren, Methoden, Zeitplan"""
+            
+            human_message = f"""Erstelle Antragsunterlagen:
+
+PROJEKT: {project_query_text}
+CHAT: {chat_context}
+STIFTUNG: {foundation_context}
+DOKUMENTE: {documents_info}
+
+Für JEDES Dokument:
+1. "text": Vollständiger Entwurf (KEINE Platzhalter)
+2. "improvements": GENAU 3 konkrete Vorschläge (z.B. "Präzisiere Zielgruppe: Wie viele Personen, welche Altersgruppe?")
+
+JSON-Format:
+{{
+  "documents": [
+    {{
+      "document": "projektbeschreibung",
+      "text": "VOLLSTÄNDIGER TEXT...",
+      "improvements": ["Vorschlag 1", "Vorschlag 2", "Vorschlag 3"]
+    }}
+  ]
+}}"""
+            
+            full_prompt = f"SYSTEM:\n{system_message}\n\nHUMAN:\n{human_message}"
+            total_chars = len(full_prompt)
+            total_tokens_estimate = total_chars // 4  # Rough estimate: ~4 chars per token
+            
+            # Log prompt details
+            print(f"\n{'='*80}")
+            print(f"📝 PROMPT ANALYSIS")
+            print(f"{'='*80}")
+            print(f"System message length: {len(system_message)} chars")
+            print(f"Human message length: {len(human_message)} chars")
+            print(f"Total prompt length: {total_chars} chars (~{total_tokens_estimate} tokens estimated)")
+            print(f"\nProject query length: {len(project_query_text)} chars")
+            print(f"Chat context length: {len(chat_context)} chars")
+            print(f"Foundation context length: {len(foundation_context)} chars")
+            print(f"Documents info length: {len(documents_info)} chars")
+            print(f"\n{'='*80}")
+            print(f"FULL PROMPT:")
+            print(f"{'='*80}")
+            print(full_prompt)
+            print(f"{'='*80}\n")
+            
             # Create chain with structured output
             print(f"📝 Generating documents with AI...")
-            print(f"Project query: {request.project_query or 'Unbekanntes Projekt'}")
             print(f"Documents to generate: {len(request.required_documents)}")
             
             # Use structured output to get parsed documents directly
             chain = prompt | self.structured_llm
             # Invoke the chain
-            parsed_output: DocumentsListOutput = chain.invoke({
-                "project_query": request.project_query or "Unbekanntes Projekt",
-                "chat_context": chat_context,
-                "foundation_context": foundation_context,
-                "documents_info": documents_info
-            })
+            parsed_output: DocumentsListOutput = chain.invoke(prompt_variables)
             
             print(f"✅ Successfully generated {len(parsed_output.documents)} documents")
            
@@ -115,134 +185,50 @@ class DocumentGenerationService:
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create the prompt template for document generation."""
         
-        system_message = """Du bist ein erfahrener Experte für Stiftungsanträge in Deutschland. 
-Deine Aufgabe ist es, professionelle, überzeugende Antragsunterlagen für gemeinnützige Projekte zu erstellen.
+        system_message = """Du erstellst professionelle Stiftungsanträge auf Deutsch.
 
-WICHTIGE RICHTLINIEN:
-1. Schreibe auf Deutsch in professionellem, aber zugänglichem Stil
-2. Verwende konkrete, messbare Ziele und klare Beschreibungen
-3. Passe den Inhalt an die spezifische Stiftung und ihre Förderschwerpunkte an
-4. Nutze die Informationen aus dem Chat-Verlauf, um das Projekt zu verstehen
-5. Schreibe in PLAIN TEXT ohne Markdown-Formatierung (keine #, **, -, *, |, etc.)
-6. Strukturiere durch Absätze, Zeilenumbrüche und klare Überschriften in GROSSBUCHSTABEN
-7. Sei konkret und vermeide leere Phrasen
-8. Zeige die gesellschaftliche Wirkung und Nachhaltigkeit des Projekts auf
+FORMAT:
+- PLAIN TEXT (kein Markdown: keine #, **, -, *, |)
+- Überschriften in GROSSBUCHSTABEN
+- Struktur durch Absätze und Zeilenumbrüche
 
-**WICHTIG - UMGANG MIT FEHLENDEN INFORMATIONEN:**
-- Der HAUPTTEXT ("text") muss IMMER ein vollständiger, verwendbarer Entwurf sein
-- KEINE Platzhalter, KEINE [FRAGE: ...] im Haupttext
-- Schreibe sinnvolle, plausible Inhalte basierend auf dem verfügbaren Kontext
-- Bei fehlenden Details: Formuliere allgemein, aber professionell
+HAUPTTEXT ("text"):
+- Vollständiger, verwendbarer Entwurf
+- KEINE Platzhalter oder [FRAGE: ...]
+- Bei fehlenden Infos: allgemein, aber professionell formulieren
 
-**VERBESSERUNGSVORSCHLÄGE ("improvements") - PFLICHTFELD:**
-- DU MUSST für JEDES Dokument GENAU 3 konkrete Verbesserungsvorschläge erstellen
-- Das improvements-Array darf NIEMALS leer sein
-- Wähle die 3 wichtigsten Verbesserungen aus
-- Jeder Vorschlag muss dem Nutzer helfen, den Entwurf zu präzisieren
-- Formuliere als klare, spezifische Handlungsaufforderungen
-- Gib konkrete Beispiele oder Orientierungshilfen
+VERBESSERUNGEN ("improvements") - PFLICHT:
+- GENAU 3 konkrete Vorschläge pro Dokument
+- Array darf NIEMALS leer sein
+- Formuliere als klare Handlungsaufforderungen mit Beispielen
 
-BEISPIELE für gute Verbesserungsvorschläge:
-- "Präzisiere die Zielgruppe: Welche spezifische Altersgruppe soll erreicht werden? (z.B. Kinder 6-12 Jahre, Jugendliche 13-18)"
-- "Ergänze konkrete Erfolgsindikatoren: Wie viele Teilnehmer:innen sollen erreicht werden? Welche messbaren Veränderungen werden angestrebt?"
-- "Detailliere die Personalkosten: Welche Qualifikationen bringen die Projektmitarbeiter:innen mit? Wie hoch ist der Stundensatz?"
-- "Füge Informationen zur Zielgruppe hinzu: Wie viele Personen werden konkret erreicht? Welche Merkmale hat die Zielgruppe?"
-- "Ergänze messbare Projektergebnisse: Was sind die konkreten Outputs? Wie wird der Erfolg gemessen?"
-- "Spezifiziere den Zeitplan: Welche Meilensteine gibt es? Wann finden welche Aktivitäten statt?"
+DOKUMENTE:
+- PROJEKTBESCHREIBUNG: Titel, Problem, Zielgruppe, SMART-Ziele, Methodik, Wirkung, Nachhaltigkeit
+- BUDGETPLAN: Tabellarisch (Leerzeichen), Gesamtkosten, Eigenanteil, Förderung
+- ZEITPLAN: Phasen mit Monaten, Meilensteine, Evaluation
+- EVALUATION: Messbare Indikatoren, Methoden, Zeitplan"""
 
-DOKUMENT-TYPEN UND IHRE ANFORDERUNGEN:
+        human_message = """Erstelle Antragsunterlagen:
 
-PROJEKTBESCHREIBUNG:
-- Projekttitel und Zusammenfassung
-- Ausgangssituation und Problemstellung (Frage bei Unklarheit: Welches konkrete Problem wird gelöst?)
-- Zielgruppe und deren Bedürfnisse (Frage: Wer genau profitiert? Wie viele Personen?)
-- Projektziele (SMART-Ziele - Frage: Was soll konkret erreicht werden? Bis wann?)
-- Projektdurchführung (Methodik, Phasen, Meilensteine - Frage: Wie genau wird vorgegangen?)
-- Erwartete Ergebnisse und Wirkung (Frage: Welche messbaren Veränderungen werden erwartet?)
-- Nachhaltigkeit und langfristige Perspektive (Frage: Wie geht es nach Projektende weiter?)
-- WICHTIG: Überschriften in GROSSBUCHSTABEN, kein Markdown
+PROJEKT: {project_query}
+CHAT: {chat_context}
+STIFTUNG: {foundation_context}
+DOKUMENTE: {documents_info}
 
-BUDGETPLAN:
-- Einfache tabellarische Auflistung mit Spalten durch mehrere Leerzeichen getrennt
-- Gesamtkalkulation mit Eigenanteil und beantragter Förderung
-- Realistische Beträge basierend auf der Förderhöhe der Stiftung
-- Bei fehlenden Zahlen: Frage nach konkreten Kostenposten und geschätzten Beträgen
-- WICHTIG: Keine Markdown-Tabellen (keine |), einfache Textformatierung
+Für JEDES Dokument:
+1. "text": Vollständiger Entwurf (KEINE Platzhalter)
+2. "improvements": GENAU 3 konkrete Vorschläge (z.B. "Präzisiere Zielgruppe: Wie viele Personen, welche Altersgruppe?")
 
-ZEITPLAN:
-- Klare Projektphasen mit Monatsangaben
-- Konkrete Meilensteine
-- Evaluationspunkte
-- Bei Unklarheit: Frage nach geplanter Projektdauer und wichtigen Zeitpunkten
-- WICHTIG: Einfache Liste, kein Markdown
-
-EVALUATION:
-- Messbare quantitative und qualitative Indikatoren
-- Evaluationsmethoden
-- Zeitplan für Zwischen- und Abschlussevaluation
-- Bei fehlenden Details: Frage nach Erfolgskriterien und Messmethoden"""
-
-        human_message = """Erstelle professionelle Antragsunterlagen basierend auf folgenden Informationen:
-
-PROJEKTIDEE:
-{project_query}
-
-CHAT-VERLAUF (Kontext zum Projekt):
-{chat_context}
-
-STIFTUNGSINFORMATIONEN:
-{foundation_context}
-
-BENÖTIGTE DOKUMENTE:
-{documents_info}
-
-AUFGABE:
-Erstelle für JEDES angeforderte Dokument:
-1. "text": Einen vollständigen, professionellen Entwurf OHNE Platzhalter oder Fragen
-2. "improvements": PFLICHTFELD - GENAU 3 konkrete Verbesserungsvorschläge
-
-WICHTIG - Haupttext ("text"):
-- Muss KOMPLETT und VERWENDBAR sein
-- KEINE [FRAGE: ...] oder Platzhalter im Text
-- Schreibe plausible Inhalte basierend auf verfügbaren Informationen
-- Bei Unsicherheit: Formuliere allgemein, aber professionell
-
-KRITISCH - Verbesserungen ("improvements") - PFLICHTFELD:
-- MUSS GENAU 3 konkrete Vorschläge enthalten
-- Das Array darf NIEMALS leer sein
-- Wähle die 3 wichtigsten Verbesserungen für dieses spezifische Dokument
-- Jeder Vorschlag muss spezifisch und umsetzbar sein
-- Formuliere als klare, direkte Fragen oder Handlungsaufforderungen
-- Gib konkrete Beispiele, wo es hilfreich ist
-
-Beispiele für gute Verbesserungsvorschläge:
-- "Präzisiere die Zielgruppe mit konkreten Zahlen: Wie viele Personen sollen erreicht werden? Welche Altersgruppe?"
-- "Ergänze messbare Projektziele: Welche konkreten Ergebnisse sollen bis wann erreicht werden?"
-- "Detailliere die Kostenplanung: Welche Personalkosten fallen an? (Stundensatz, Anzahl Stunden)"
-- "Spezifiziere den Zeitplan: Wann soll das Projekt starten? Wie lange ist die Laufzeit?"
-- "Füge Informationen zur Nachhaltigkeit hinzu: Wie wird das Projekt nach Förderungsende weitergeführt?"
-- "Konkretisiere die Evaluationsmethoden: Welche spezifischen Indikatoren werden gemessen?"
-
-FORMATIERUNG:
-- Text: KEIN Markdown (keine #, **, -, *, |, etc.), Überschriften in GROSSBUCHSTABEN
-- Improvements: PFLICHTFELD - Jeder Eintrag ist ein separater String, IMMER GENAU 3 Einträge
-
-ANTWORTFORMAT - JSON:
+JSON-Format:
 {{
   "documents": [
     {{
       "document": "projektbeschreibung",
-      "text": "VOLLSTÄNDIGER TEXT HIER...",
-      "improvements": [
-        "Verbesserung 1 - konkret und umsetzbar",
-        "Verbesserung 2 - konkret und umsetzbar",
-        "Verbesserung 3 - konkret und umsetzbar"
-      ]
+      "text": "VOLLSTÄNDIGER TEXT...",
+      "improvements": ["Vorschlag 1", "Vorschlag 2", "Vorschlag 3"]
     }}
   ]
-}}
-
-WICHTIG: Das improvements-Array MUSS für JEDES Dokument GENAU 3 Einträge haben!"""
+}}"""
 
         return ChatPromptTemplate.from_messages([
             ("system", system_message),
@@ -250,39 +236,50 @@ WICHTIG: Das improvements-Array MUSS für JEDES Dokument GENAU 3 Einträge haben
         ])
     
     def _build_chat_context(self, messages: List) -> str:
-        """Build context from chat messages."""
+        """Build context from chat messages - limited to reduce token usage."""
         if not messages:
             return "Keine zusätzlichen Informationen aus dem Chat vorhanden."
         
+        # Limit to last 8 messages and truncate long messages
+        limited_messages = messages[-8:] if len(messages) > 8 else messages
         context_parts = []
-        for msg in messages:
+        for msg in limited_messages:
             role = "Nutzer" if msg.role == "user" else "Assistent"
-            context_parts.append(f"{role}: {msg.content}")
+            # Truncate individual messages if too long (max 300 chars per message)
+            content = msg.content
+            if len(content) > 300:
+                content = content[:300] + "..."
+            context_parts.append(f"{role}: {content}")
         
         return "\n".join(context_parts)
     
     def _build_foundation_context(self, foundation_name: str | None, foundation_details: dict | None) -> str:
-        """Build context about the foundation."""
+        """Build context about the foundation - only essential information to reduce token usage."""
         if not foundation_name:
             return "Keine spezifischen Stiftungsinformationen vorhanden."
         
         context = f"Stiftung: {foundation_name}\n"
         
         if foundation_details:
+            # Only include purpose if it's concise (max 200 chars)
             if "purpose" in foundation_details and foundation_details["purpose"]:
-                context += f"Förderzweck: {foundation_details['purpose']}\n"
+                purpose = foundation_details["purpose"]
+                if len(purpose) > 200:
+                    purpose = purpose[:200] + "..."
+                context += f"Förderzweck: {purpose}\n"
+            # Include funding amount (essential and concise)
             if "foerderhoehe" in foundation_details and foundation_details["foerderhoehe"]:
                 foerderhoehe = foundation_details["foerderhoehe"]
                 min_amount = foerderhoehe.get('min_amount') or 0
                 max_amount = foerderhoehe.get('max_amount') or 0
                 if min_amount or max_amount:
                     context += f"Förderhöhe: {min_amount:,.0f}€ - {max_amount:,.0f}€\n"
-            if "gemeinnuetzige_zwecke" in foundation_details and foundation_details["gemeinnuetzige_zwecke"]:
-                zwecke = ", ".join(foundation_details["gemeinnuetzige_zwecke"])
-                context += f"Gemeinnützige Zwecke: {zwecke}\n"
+            # Include funding scope if concise (max 150 chars)
             if "foerderbereich" in foundation_details and foundation_details["foerderbereich"]:
                 scope = foundation_details["foerderbereich"].get("scope", "")
                 if scope:
+                    if len(scope) > 150:
+                        scope = scope[:150] + "..."
                     context += f"Förderbereich: {scope}\n"
         
         return context

@@ -76,11 +76,34 @@ async def generate_documents(
         antragsprozess = foundation.get("antragsprozess", {})
         required_docs = antragsprozess.get("required_documents", [])
         
+        # Log foundation structure for debugging
+        print(f"🔍 Foundation data structure:")
+        print(f"  - Foundation ID: {foundation.get('id')}")
+        print(f"  - Foundation name: {foundation.get('name')}")
+        print(f"  - Has antragsprozess: {bool(antragsprozess)}")
+        print(f"  - Antragsprozess keys: {list(antragsprozess.keys()) if isinstance(antragsprozess, dict) else 'Not a dict'}")
+        print(f"  - Required docs found: {len(required_docs) if required_docs else 0}")
+        
+        # If no required documents found, use default set
         if not required_docs:
-            raise HTTPException(
-                status_code=400,
-                detail="No required documents found for this foundation"
-            )
+            print(f"⚠️ No required documents found, using default documents")
+            required_docs = [
+                {
+                    "document_type": "projektbeschreibung",
+                    "description": "Detaillierte Beschreibung des Projekts, seiner Ziele, Zielgruppe und geplanten Wirkung",
+                    "required": True
+                },
+                {
+                    "document_type": "budgetplan",
+                    "description": "Detaillierte Kostenaufstellung mit allen Ausgaben und Einnahmen des Projekts",
+                    "required": True
+                },
+                {
+                    "document_type": "zeitplan",
+                    "description": "Projektzeitplan mit Meilensteinen und wichtigen Terminen",
+                    "required": True
+                }
+            ]
         
         # Convert to RequiredDocumentInput format
         required_documents = [
@@ -93,28 +116,34 @@ async def generate_documents(
         ]
         
         # Convert chat messages to the format expected by the service
+        # Limit to last 10 messages to reduce token usage
+        recent_messages = session_data.chat_messages[-10:] if len(session_data.chat_messages) > 10 else session_data.chat_messages
         chat_messages = [
             ChatMessageInput(
                 role=msg.role,
                 content=msg.content
             )
-            for msg in session_data.chat_messages
+            for msg in recent_messages
         ]
         
-        # Build foundation details
+        # Build foundation details - only essential information
         foundation_details = {
             "purpose": foundation.get("purpose"),
-            "gemeinnuetzige_zwecke": foundation.get("gemeinnuetzige_zwecke"),
             "foerderhoehe": foundation.get("foerderhoehe"),
             "foerderbereich": foundation.get("foerderbereich"),
         }
+        
+        # Truncate project query if too long (max 500 chars)
+        project_query = session_data.project_query or ""
+        if len(project_query) > 500:
+            project_query = project_query[:500] + "..."
         
         # Create the internal request for the service
         from app.models.document_generation import GenerateDocumentsRequestLegacy
         internal_request = GenerateDocumentsRequestLegacy(
             required_documents=required_documents,
             chat_messages=chat_messages,
-            project_query=session_data.project_query,
+            project_query=project_query,
             foundation_name=foundation.get("name"),
             foundation_details=foundation_details
         )

@@ -209,13 +209,13 @@ export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
                           </svg>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 font-medium truncate">
-                          {getSessionPreview(session)}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatDate(session.updated_at)}
-                        </p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 font-medium truncate">
+                        {getSessionPreview(session)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatDate(session.updated_at)}
+                      </p>
                       </div>
                     </div>
                     {loadingSessionId === session.session_id ? (
