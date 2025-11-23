@@ -2,6 +2,7 @@
 Service for scoring and matching foundations to user projects using AI.
 """
 
+import locale
 from typing import List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from langchain_openai import ChatOpenAI
@@ -17,6 +18,8 @@ from app.models.scores import (
 from app.models.project_description import ProjectDescription
 from app.core.config import settings
 from app.core.database import get_database
+
+locale.setlocale(locale.LC_ALL, "de_DE.UTF-8")
 
 
 class ScoringService:
@@ -501,15 +504,11 @@ def format_funding_amount(foerderhoehe: Dict[str, Any]) -> str:
     """Format funding amount for display."""
     max_amount = foerderhoehe.get("max_amount")
 
-    if max_amount is None or max_amount == 0:
+    if not max_amount:
         return "Förderhöhe nicht angegeben"
 
-    if max_amount >= 100000:
-        return f"Bis zu {int(max_amount / 1000)}k€"
-    elif max_amount >= 1000:
-        return f"Bis zu {int(max_amount / 1000)}.{int((max_amount % 1000) / 100)}k€"
-    else:
-        return f"Bis zu {int(max_amount)}€"
+    formatted = locale.format_string("%d", max_amount, grouping=True)
+    return f"Bis zu {formatted} €"
 
 
 # Global service instance
