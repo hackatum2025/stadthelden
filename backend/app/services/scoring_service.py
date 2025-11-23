@@ -142,6 +142,29 @@ def convert_foundation_to_scored(foundation: Dict[str, Any]) -> FoundationScore:
             return default or []
         return value
     
+    # Handle foerderhoehe with category-based defaults
+    foerderhoehe_raw = safe_get_dict("foerderhoehe")
+    if foerderhoehe_raw:
+        category = foerderhoehe_raw.get("category")
+        min_amount = foerderhoehe_raw.get("min_amount")
+        max_amount = foerderhoehe_raw.get("max_amount")
+        
+        # Set default values based on category if amounts are null
+        if min_amount is None or max_amount is None:
+            category_lower = str(category).lower() if category else ""
+            if category_lower in ["large", "großförderung", "grossfoerderung"]:
+                # Großförderung (>50k): default range 50k-200k
+                foerderhoehe_raw["min_amount"] = min_amount if min_amount is not None else 50000
+                foerderhoehe_raw["max_amount"] = max_amount if max_amount is not None else 200000
+            elif category_lower in ["small", "kleinförderung", "kleinfoerderung"]:
+                # Kleinförderung (<5k): default range 0-5k
+                foerderhoehe_raw["min_amount"] = min_amount if min_amount is not None else 0
+                foerderhoehe_raw["max_amount"] = max_amount if max_amount is not None else 5000
+            elif category_lower in ["medium", "mittelgroße förderung", "mittelgrosse foerderung"]:
+                # Mittelgroße Förderung (5k-50k): default range 5k-50k
+                foerderhoehe_raw["min_amount"] = min_amount if min_amount is not None else 5000
+                foerderhoehe_raw["max_amount"] = max_amount if max_amount is not None else 50000
+    
     return FoundationScore(
         id=foundation.get("_id", foundation.get("id", "")),
         name=foundation.get("name", ""),
@@ -157,7 +180,7 @@ def convert_foundation_to_scored(foundation: Dict[str, Any]) -> FoundationScore:
         gemeinnuetzige_zwecke=zwecke,
         antragsprozess=safe_get_dict("antragsprozess"),
         foerderbereich=safe_get_dict("foerderbereich"),
-        foerderhoehe=safe_get_dict("foerderhoehe"),
+        foerderhoehe=foerderhoehe_raw if foerderhoehe_raw else {},
         contact=safe_get_dict("contact"),
         past_projects=safe_get_list("past_projects"),
         website=foundation.get("website", "")
