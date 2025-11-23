@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { listRecentSessions, type SessionListItem } from "../services/api";
 import { useSession } from "../context/SessionContext";
 
@@ -9,12 +10,35 @@ type SessionSelectorProps = {
 };
 
 export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { sessionId: currentSessionId, loadSession } = useSession();
+
+  // Check if session has application documents
+  const hasApplicationDocuments = (session: SessionListItem): boolean => {
+    if (!session.application_documents) return false;
+    const docs = session.application_documents;
+    return Object.keys(docs).length > 0 && 
+           Object.values(docs).some(docList => docList && docList.length > 0);
+  };
+
+  // Get the first foundation ID with application documents
+  const getFirstFoundationId = (session: SessionListItem): string | null => {
+    if (!session.application_documents) return null;
+    const foundationIds = Object.keys(session.application_documents);
+    if (foundationIds.length > 0) {
+      const firstId = foundationIds[0];
+      const docs = session.application_documents[firstId];
+      if (docs && docs.length > 0) {
+        return firstId;
+      }
+    }
+    return session.current_foundation_id || null;
+  };
 
   // Load sessions when dropdown opens
   useEffect(() => {
@@ -69,7 +93,17 @@ export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
       
       setIsOpen(false);
       
-      // Reload to trigger full UI restoration
+      // If session has application documents, navigate to application page
+      if (hasApplicationDocuments(session)) {
+        const foundationId = getFirstFoundationId(session);
+        if (foundationId) {
+          console.log("📄 Session has application documents, navigating to application page");
+          router.push(`/application/${foundationId}`);
+          return;
+        }
+      }
+      
+      // Otherwise reload to trigger full UI restoration for chat
       console.log("♻️ Reloading page to restore session state");
       window.location.reload();
     } catch (error) {
@@ -120,8 +154,9 @@ export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
-        className="p-3 text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-3 text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed group relative"
         title="Vergangene Sitzungen"
+        aria-label="Vergangene Sitzungen"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -130,7 +165,7 @@ export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
+        <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
             <h3 className="text-sm font-semibold text-gray-900">Vergangene Sitzungen</h3>
@@ -161,13 +196,27 @@ export const SessionSelector = ({ disabled }: SessionSelectorProps) => {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 font-medium truncate">
-                        {getSessionPreview(session)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatDate(session.updated_at)}
-                      </p>
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      {/* Session Type Icon */}
+                      <div className="flex-shrink-0 mt-0.5">
+                        {hasApplicationDocuments(session) ? (
+                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Antrag">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Chat">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900 font-medium truncate">
+                          {getSessionPreview(session)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatDate(session.updated_at)}
+                        </p>
+                      </div>
                     </div>
                     {loadingSessionId === session.session_id ? (
                       <div className="flex-shrink-0">

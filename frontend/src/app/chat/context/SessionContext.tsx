@@ -1,12 +1,15 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { 
   createSession, 
   updateSession, 
   getSession, 
   type SessionData,
-  type ChatMessage 
+  type SessionResponse,
+  type ChatMessage,
+  type ApplicationDocument
 } from "../services/api";
 
 type SessionContextType = {
@@ -15,6 +18,7 @@ type SessionContextType = {
   foundationResults: any[];
   projectQuery: string | null;
   currentFoundationId: string | null;
+  applicationDocuments: Record<string, ApplicationDocument[]>;
   
   // Actions
   setChatMessages: (messages: ChatMessage[]) => void;
@@ -22,7 +26,7 @@ type SessionContextType = {
   setProjectQuery: (query: string) => void;
   setCurrentFoundationId: (id: string | null) => void;
   saveSession: () => Promise<void>;
-  loadSession: (sessionId: string) => Promise<void>;
+  loadSession: (sessionId: string, shouldNavigate?: boolean) => Promise<void>;
   clearSession: () => void;
   ensureSession: () => Promise<string>; // New: ensure session exists before chat
 };
@@ -42,14 +46,38 @@ type SessionProviderProps = {
 };
 
 export const SessionProvider = ({ children }: SessionProviderProps) => {
+  const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [foundationResults, setFoundationResults] = useState<any[]>([]);
   const [projectQuery, setProjectQuery] = useState<string | null>(null);
   const [currentFoundationId, setCurrentFoundationId] = useState<string | null>(null);
+  const [applicationDocuments, setApplicationDocuments] = useState<Record<string, ApplicationDocument[]>>({});
+
+  // Check if session has application documents
+  const hasApplicationDocuments = (data: SessionResponse['data']): boolean => {
+    if (!data || !data.application_documents) return false;
+    const docs = data.application_documents;
+    return Object.keys(docs).length > 0 && 
+           Object.values(docs).some(docList => docList && docList.length > 0);
+  };
+
+  // Get the first foundation ID with application documents
+  const getFirstFoundationId = (data: SessionResponse['data']): string | null => {
+    if (!data || !data.application_documents) return null;
+    const foundationIds = Object.keys(data.application_documents);
+    if (foundationIds.length > 0) {
+      const firstId = foundationIds[0];
+      const docs = data.application_documents[firstId];
+      if (docs && docs.length > 0) {
+        return firstId;
+      }
+    }
+    return data.current_foundation_id || null;
+  };
 
   // Load session from backend
-  const loadSession = useCallback(async (id: string) => {
+  const loadSession = useCallback(async (id: string, shouldNavigate: boolean = false) => {
     try {
       console.log("🔄 Loading session from backend:", id);
       const response = await getSession(id);
@@ -58,13 +86,27 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
           messages: response.data.chat_messages.length,
           results: response.data.foundation_results.length,
           query: response.data.project_query,
-          foundationId: response.data.current_foundation_id
+          foundationId: response.data.current_foundation_id,
+          hasApplicationDocs: hasApplicationDocuments(response.data)
         });
         
         setChatMessages(response.data.chat_messages);
         setFoundationResults(response.data.foundation_results);
         setProjectQuery(response.data.project_query || null);
         setCurrentFoundationId(response.data.current_foundation_id || null);
+        setApplicationDocuments(response.data.application_documents || {});
+        setSessionId(id);
+        
+        // If session has application documents and we should navigate, go to application page
+        if (shouldNavigate && hasApplicationDocuments(response.data)) {
+          const foundationId = getFirstFoundationId(response.data);
+          if (foundationId) {
+            console.log("📄 Session has application documents, navigating to application page");
+            router.push(`/application/${foundationId}`);
+            return;
+          }
+        }
+        
         console.log("✅ Session loaded successfully:", id);
       } else {
         console.warn("⚠️ Session not found or invalid response");
@@ -72,7 +114,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
     } catch (error) {
       console.error("❌ Error loading session:", error);
     }
-  }, []);
+  }, [router]);
 
   // Save session to backend and localStorage
   const saveSession = useCallback(async () => {
@@ -81,13 +123,15 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
       foundation_results: foundationResults,
       current_foundation_id: currentFoundationId || undefined,
       project_query: projectQuery || undefined,
+      application_documents: applicationDocuments,
     };
 
     console.log("💾 Saving session with data:", {
       messages: chatMessages.length,
       results: foundationResults.length,
       query: projectQuery,
-      foundationId: currentFoundationId
+      foundationId: currentFoundationId,
+      applicationDocs: Object.keys(applicationDocuments).length
     });
 
     try {
@@ -109,15 +153,15 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
     } catch (error) {
       console.error("❌ Error saving session:", error);
     }
-  }, [sessionId, chatMessages, foundationResults, currentFoundationId, projectQuery]);
+  }, [sessionId, chatMessages, foundationResults, currentFoundationId, projectQuery, applicationDocuments]);
 
   // Load session ID from localStorage on mount
   useEffect(() => {
     const storedSessionId = localStorage.getItem("sessionId");
     if (storedSessionId) {
       console.log("🔄 Loading session from localStorage:", storedSessionId);
-      setSessionId(storedSessionId);
-      loadSession(storedSessionId);
+      // Pass shouldNavigate=true to automatically navigate to application page if it has documents
+      loadSession(storedSessionId, true);
     }
   }, [loadSession]);
 
@@ -159,6 +203,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
     setFoundationResults([]);
     setProjectQuery(null);
     setCurrentFoundationId(null);
+    setApplicationDocuments({});
     localStorage.removeItem("sessionId");
   }, []);
 
@@ -181,6 +226,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
         foundationResults,
         projectQuery,
         currentFoundationId,
+        applicationDocuments,
         setChatMessages,
         setFoundationResults,
         setProjectQuery,

@@ -104,11 +104,18 @@ export type ChatMessage = {
   timestamp: string;
 };
 
+export type ApplicationDocument = {
+  document_type: string;
+  content: string;
+  improvements?: string[];
+};
+
 export type SessionData = {
   chat_messages: ChatMessage[];
   foundation_results: any[];
   current_foundation_id?: string;
   project_query?: string;
+  application_documents?: Record<string, ApplicationDocument[]>;
 };
 
 export type SessionResponse = {
@@ -120,6 +127,7 @@ export type SessionResponse = {
     foundation_results: any[];
     current_foundation_id?: string;
     project_query?: string;
+    application_documents?: Record<string, ApplicationDocument[]>;
     created_at: string;
     updated_at: string;
   };
@@ -207,6 +215,35 @@ export const deleteSession = async (sessionId: string): Promise<boolean> => {
   }
 };
 
+// Update application documents for a specific foundation
+export const updateApplicationDocuments = async (
+  sessionId: string,
+  foundationId: string,
+  documents: ApplicationDocument[]
+): Promise<SessionResponse | null> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/sessions/${sessionId}/application-documents/${foundationId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ documents }),
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating application documents:", error);
+    return null;
+  }
+};
+
 // List recent sessions
 export type SessionListItem = {
   session_id: string;
@@ -214,6 +251,8 @@ export type SessionListItem = {
   created_at: string;
   updated_at: string;
   chat_messages: ChatMessage[];
+  application_documents?: Record<string, ApplicationDocument[]>;
+  current_foundation_id?: string;
 };
 
 export type SessionListResponse = {

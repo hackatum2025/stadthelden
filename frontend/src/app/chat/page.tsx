@@ -9,6 +9,7 @@ import { ChatInput } from "./components/ChatInput";
 import { RefiningMode } from "./components/RefiningMode";
 import { ResultsView } from "./components/ResultsView";
 import { ProjectAnalysisLoader } from "./components/ProjectAnalysisLoader";
+import { SessionSelector } from "./components/SessionSelector";
 import { useSession } from "./context/SessionContext";
 
 export default function ChatPage() {
@@ -32,6 +33,13 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-[#1b98d5] transition-all duration-[2000ms] relative">
+      {/* SessionSelector - Top Right (only on first page) */}
+      {showHero && !showSplitView && (
+        <div className="absolute top-6 right-6 z-50">
+          <SessionSelector disabled={isLoading} />
+        </div>
+      )}
+
       {/* Results Section - Left Side */}
       <div 
         className={`transition-all duration-[2000ms] ease-in-out ${
