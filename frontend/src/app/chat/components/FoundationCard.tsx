@@ -127,8 +127,8 @@ export const FoundationCard = ({
       } animate-fadeIn`}>
       {/* Header */}
       <div className="flex items-start gap-4 mb-4">
-        <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gradient-to-br from-[#1b98d5] to-[#0065bd] p-2">
-          <Image src={foundation.logo} alt={foundation.name} width={64} height={64} className="w-full h-full" />
+        <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-white border-2 border-[#1b98d5] p-2">
+          <Image src={foundation.logo} alt={foundation.name} width={80} height={80} className="w-full h-full" />
         </div>
         <div className="flex-1">
           <h3 className="text-xl font-bold text-gray-900 mb-1">{foundation.name}</h3>

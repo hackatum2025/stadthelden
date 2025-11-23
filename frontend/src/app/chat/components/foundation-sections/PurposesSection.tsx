@@ -1,6 +1,6 @@
 const getPurposeIcon = (purpose: string) => {
   const purposeLower = purpose.toLowerCase();
-  
+
   if (purposeLower.includes('jugend') || purposeLower.includes('kind')) {
     return <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />;
   } else if (purposeLower.includes('bildung') || purposeLower.includes('erziehung')) {
@@ -27,6 +27,22 @@ type PurposesSectionProps = {
 };
 
 export const PurposesSection = ({ purposes }: PurposesSectionProps) => {
+  // Split purposes into two columns
+  const midpoint = Math.ceil(purposes.length / 2);
+  const leftColumn = purposes.slice(0, midpoint);
+  const rightColumn = purposes.slice(midpoint);
+
+  const renderCard = (zweck: string, idx: number) => (
+    <div key={idx} className="bg-white p-3 rounded-lg flex items-start gap-3 shadow-sm mb-3">
+      <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+        <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {getPurposeIcon(zweck)}
+        </svg>
+      </div>
+      <span className="text-sm font-medium text-gray-900 flex-1">{zweck}</span>
+    </div>
+  );
+
   return (
     <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
       <div className="flex items-center justify-between mb-4">
@@ -36,7 +52,7 @@ export const PurposesSection = ({ purposes }: PurposesSectionProps) => {
           </svg>
           <h5 className="text-lg font-semibold text-gray-900">Gemeinnützige Zwecke</h5>
         </div>
-        <a 
+        <a
           href="https://www.gesetze-im-internet.de/ao_1977/__52.html"
           target="_blank"
           rel="noopener noreferrer"
@@ -48,17 +64,13 @@ export const PurposesSection = ({ purposes }: PurposesSectionProps) => {
           §52 AO
         </a>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {purposes.map((zweck, idx) => (
-          <div key={idx} className="bg-white p-3 rounded-lg flex items-center gap-3 shadow-sm">
-            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {getPurposeIcon(zweck)}
-              </svg>
-            </div>
-            <span className="text-sm font-medium text-gray-900">{zweck}</span>
-          </div>
-        ))}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex-1 flex flex-col">
+          {leftColumn.map((zweck, idx) => renderCard(zweck, idx))}
+        </div>
+        <div className="flex-1 flex flex-col">
+          {rightColumn.map((zweck, idx) => renderCard(zweck, midpoint + idx))}
+        </div>
       </div>
     </div>
   );
