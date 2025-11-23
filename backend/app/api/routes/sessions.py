@@ -3,7 +3,12 @@ Session API endpoints for managing user sessions.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from app.models.session import CreateSessionRequest, SessionResponse, SessionData
+from app.models.session import (
+    CreateSessionRequest, 
+    SessionResponse, 
+    SessionData,
+    UpdateApplicationDocumentsRequest
+)
 from app.services.session_service import SessionService
 from app.core.database import get_database
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -146,4 +151,42 @@ async def list_recent_sessions(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list sessions: {str(e)}")
+
+
+@router.put("/sessions/{session_id}/application-documents/{foundation_id}", response_model=SessionResponse)
+async def update_application_documents(
+    session_id: str,
+    foundation_id: str,
+    request: UpdateApplicationDocumentsRequest,
+    service: SessionService = Depends(get_session_service)
+):
+    """
+    Update application documents for a specific foundation in a session.
+    
+    This endpoint allows updating the document drafts (content and improvements)
+    for a specific foundation without replacing the entire session.
+    """
+    try:
+        session_data = await service.update_application_documents(
+            session_id, 
+            foundation_id, 
+            request.documents
+        )
+        
+        if not session_data:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        return SessionResponse(
+            success=True,
+            session_id=session_data.session_id,
+            data=session_data,
+            message="Application documents updated successfully"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to update application documents: {str(e)}"
+        )
 

@@ -15,7 +15,7 @@ export const RefiningMode = () => {
           </div>
           <div className="flex-1">
             <p className="text-white/90 text-sm">
-              Tell us more about your idea...
+              Erzähle uns mehr über deine Idee...
             </p>
           </div>
         </div>

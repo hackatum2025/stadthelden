@@ -1,4 +1,4 @@
-export function FoundationsLoader({ message = "Lade Stiftungen..." }: { message?: string }) {
+export function FoundationsLoader({ message = "Lade Stiftungen" }: { message?: string }) {
   return (
     <div className="h-full overflow-y-auto bg-slate-50 p-8 flex items-center justify-center">
       <div className="text-center animate-fadeIn">
@@ -13,7 +13,7 @@ export function FoundationsLoader({ message = "Lade Stiftungen..." }: { message?
           {message}
         </h2>
         <p className="text-gray-600">
-          Einen Moment bitte...
+          Einen Moment bitte
         </p>
         <div className="mt-6 flex justify-center gap-2">
           <span className="w-2.5 h-2.5 bg-[#1b98d5] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>

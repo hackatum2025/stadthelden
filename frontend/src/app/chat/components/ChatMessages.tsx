@@ -11,7 +11,7 @@ export const ChatMessages = ({ messages, isLoading }: ChatMessagesProps) => {
   if (messages.length === 0) return null;
 
   return (
-    <div className="w-full mb-6 flex-1 overflow-y-auto max-h-[60vh]">
+    <div className="w-full mb-6">
       {messages.map((message) => (
         <ChatMessage key={message.id || Math.random()} message={message} />
       ))}

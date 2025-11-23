@@ -9,11 +9,12 @@ import { ChatInput } from "./components/ChatInput";
 import { RefiningMode } from "./components/RefiningMode";
 import { ResultsView } from "./components/ResultsView";
 import { ProjectAnalysisLoader } from "./components/ProjectAnalysisLoader";
+import { SessionSelector } from "./components/SessionSelector";
 import { useSession } from "./context/SessionContext";
 
 export default function ChatPage() {
   const placeholder = useTypingAnimation(
-    "How do you want to help? Tell us your idea...",
+    "Wie möchtest du helfen? Erzähle uns deine Idee...",
     100
   );
   const { messages, isLoading, chatMode, isTransitioning, sendMessage } = useChat();
@@ -32,6 +33,13 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-[#1b98d5] transition-all duration-[2000ms] relative">
+      {/* SessionSelector - Top Right (only on first page) */}
+      {showHero && !showSplitView && (
+        <div className="absolute top-6 right-6 z-50">
+          <SessionSelector disabled={isLoading} />
+        </div>
+      )}
+
       {/* Results Section - Left Side */}
       <div 
         className={`transition-all duration-[2000ms] ease-in-out ${
@@ -91,12 +99,12 @@ export default function ChatPage() {
           </div>
         )}
         {/* Main chat area */}
-        <main className={`flex flex-1 items-center justify-center transition-all duration-[2000ms] overflow-hidden ${
-          showSplitView ? 'px-2 py-2' : 'px-4 py-8'
+        <main className={`flex flex-1 transition-all duration-[2000ms] overflow-hidden ${
+          showSplitView ? 'px-2 py-2' : 'px-4 py-8 items-center justify-center'
         }`}>
           <div 
             className={`flex flex-col w-full transition-all duration-[1500ms] ${
-              showSplitView ? 'max-w-full h-full justify-end' : 'max-w-4xl'
+              showSplitView ? 'max-w-full h-full' : 'max-w-4xl'
             }`}
           >
             {/* Hero Section and Input grouped together when showing hero */}
@@ -124,14 +132,14 @@ export default function ChatPage() {
                 )}
 
                 {/* Chat Messages */}
-                <div className={`w-full flex-1 transition-all duration-[2000ms] ${
-                  showSplitView ? 'px-2 overflow-y-auto' : 'px-4'
+                <div className={`w-full flex-1 transition-all duration-[2000ms] overflow-y-auto min-h-0 ${
+                  showSplitView ? 'px-2' : 'px-4'
                 } animate-fadeIn`}>
                   <ChatMessages messages={messages} isLoading={isLoading} />
                 </div>
 
                 {/* Input with Send Button */}
-                <div className={`w-full transition-all duration-[2000ms] ${
+                <div className={`w-full flex-shrink-0 transition-all duration-[2000ms] ${
                   showSplitView ? 'px-2 mt-2' : 'px-4 mt-4'
                 }`}>
                   <ChatInput
