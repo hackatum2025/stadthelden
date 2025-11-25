@@ -34,6 +34,9 @@ cd frontend
 # Create .env.local if it doesn't exist
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 
+# Install dependencies
+npm i
+
 # Start the frontend
 npm run dev
 ```
@@ -73,8 +76,8 @@ curl -X POST http://localhost:8000/api/v1/chat/message \
 ```
 ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
 │                 │         │                 │         │                 │
-│  Next.js        │ ─────> │  FastAPI        │ ─────> │  MongoDB Atlas  │
-│  Frontend       │  HTTP  │  Backend        │  Async │  Database       │
+│  Next.js        │ ─────>  │  FastAPI        │ ─────>  │  MongoDB Atlas  │
+│  Frontend       │  HTTP   │  Backend        │  Async  │  Database       │
 │  :3000          │         │  :8000          │         │                 │
 │                 │         │                 │         │                 │
 └─────────────────┘         └─────────────────┘         └─────────────────┘
@@ -158,19 +161,6 @@ Deploy to Vercel with:
 | GET    | `/api/v1/foundations/scores` | Get foundations with match scores ⭐ |
 | GET    | `/api/v1/foundations/{id}`   | Get specific foundation             |
 | POST   | `/api/v1/chat/message`       | Send chat message                   |
-
-### Foundation Scores Endpoint
-
-The `/api/v1/foundations/scores` endpoint returns foundations with:
-- **Match score** (0.0 to 1.0)
-- **Fits** (positive matches like "Fördert lokale Projekte")
-- **Mismatches** (potential issues like "Keine Personalkosten")
-- **Questions** (things to clarify like "Kofinanzierung nötig?")
-
-Example:
-```bash
-curl "http://localhost:8000/api/v1/foundations/scores?query=youth+education&limit=5"
-```
 
 See full API docs at http://localhost:8000/docs when backend is running.
 
