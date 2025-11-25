@@ -15,9 +15,6 @@ nano .env  # Replace <db_password> with your actual password
 # Install and lock dependencies (creates .venv/)
 uv sync
 
-# Seed the database (only needed once)
-uv run -- python -m app.seed_data
-
 # Start the FastAPI server with live reload
 uv run -- uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -154,13 +151,13 @@ Deploy to Vercel with:
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/api/v1/foundations` | Get all foundations with projects |
-| GET | `/api/v1/foundations/scores` | Get foundations with match scores ⭐ |
-| GET | `/api/v1/foundations/{id}` | Get specific foundation |
-| POST | `/api/v1/chat/message` | Send chat message |
+| Method | Endpoint                     | Description                         |
+| ------ | ---------------------------- | ----------------------------------- |
+| GET    | `/health`                    | Health check                        |
+| GET    | `/api/v1/foundations`        | Get all foundations with projects   |
+| GET    | `/api/v1/foundations/scores` | Get foundations with match scores ⭐ |
+| GET    | `/api/v1/foundations/{id}`   | Get specific foundation             |
+| POST   | `/api/v1/chat/message`       | Send chat message                   |
 
 ### Foundation Scores Endpoint
 
