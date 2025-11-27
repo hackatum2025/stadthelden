@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { useTypingAnimation } from "./hooks/useTypingAnimation";
 import { useChat } from "./hooks/useChat";
@@ -10,9 +11,11 @@ import { RefiningMode } from "./components/RefiningMode";
 import { ResultsView } from "./components/ResultsView";
 import { ProjectAnalysisLoader } from "./components/ProjectAnalysisLoader";
 import { SessionSelector } from "./components/SessionSelector";
+import { AboutModal } from "./components/AboutModal";
 import { useSession } from "./context/SessionContext";
 
 export default function ChatPage() {
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const placeholder = useTypingAnimation(
     "Wie möchtest du helfen? Erzähle uns deine Idee...",
     100
@@ -33,12 +36,30 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-[#1b98d5] transition-all duration-[2000ms] relative">
+      {/* About Us Button - Top Left (only on first page) */}
+      {showHero && !showSplitView && (
+        <div className="absolute top-6 left-6 z-50">
+          <button
+            onClick={() => setIsAboutModalOpen(true)}
+            className="px-4 py-2 bg-white text-[#1b98d5] rounded-lg hover:shadow-lg transition-all font-medium cursor-pointer"
+          >
+            About Us
+          </button>
+        </div>
+      )}
+
       {/* SessionSelector - Top Right (only on first page) */}
       {showHero && !showSplitView && (
         <div className="absolute top-6 right-6 z-50">
           <SessionSelector disabled={isLoading} />
         </div>
       )}
+
+      {/* About Modal */}
+      <AboutModal 
+        isOpen={isAboutModalOpen} 
+        onClose={() => setIsAboutModalOpen(false)} 
+      />
 
       {/* Results Section - Left Side */}
       <div 
