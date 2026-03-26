@@ -13,6 +13,7 @@ import { ProjectAnalysisLoader } from "./components/ProjectAnalysisLoader";
 import { SessionSelector } from "./components/SessionSelector";
 import { AboutModal } from "./components/AboutModal";
 import { useSession } from "./context/SessionContext";
+import { ProjectMigrationBanner } from "../components/ProjectMigrationBanner";
 
 export default function ChatPage() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
@@ -35,53 +36,55 @@ export default function ChatPage() {
   const hasRestoredSession = sessionId && messages.length > 0;
 
   return (
-    <div className="flex h-screen bg-[#1b98d5] transition-all duration-[2000ms] relative">
-      {/* About Us Button - Top Left (only on first page) */}
-      {showHero && !showSplitView && (
-        <div className="absolute top-6 left-6 z-50">
-          <button
-            onClick={() => setIsAboutModalOpen(true)}
-            className="px-4 py-2 bg-white text-[#1b98d5] rounded-lg hover:shadow-lg transition-all font-medium cursor-pointer"
-          >
-            About Us
-          </button>
+    <div className="flex min-h-screen flex-col bg-[#1b98d5]">
+      <ProjectMigrationBanner />
+      <div className="relative flex min-h-0 flex-1 bg-[#1b98d5] transition-all duration-[2000ms]">
+        {/* About Us Button - Top Left (only on first page) */}
+        {showHero && !showSplitView && (
+          <div className="absolute top-6 left-6 z-50">
+            <button
+              onClick={() => setIsAboutModalOpen(true)}
+              className="px-4 py-2 bg-white text-[#1b98d5] rounded-lg hover:shadow-lg transition-all font-medium cursor-pointer"
+            >
+              About Us
+            </button>
+          </div>
+        )}
+
+        {/* SessionSelector - Top Right (only on first page) */}
+        {showHero && !showSplitView && (
+          <div className="absolute top-6 right-6 z-50">
+            <SessionSelector disabled={isLoading} />
+          </div>
+        )}
+
+        {/* About Modal */}
+        <AboutModal 
+          isOpen={isAboutModalOpen} 
+          onClose={() => setIsAboutModalOpen(false)} 
+        />
+
+        {/* Results Section - Left Side */}
+        <div 
+          className={`transition-all duration-[2000ms] ease-in-out ${
+            showSplitView ? 'w-[70%] opacity-100' : 'w-0 opacity-0'
+          } overflow-hidden`}
+        >
+          {isTransitioning ? (
+            <ProjectAnalysisLoader />
+          ) : showResults ? (
+            <ResultsView />
+          ) : null}
         </div>
-      )}
 
-      {/* SessionSelector - Top Right (only on first page) */}
-      {showHero && !showSplitView && (
-        <div className="absolute top-6 right-6 z-50">
-          <SessionSelector disabled={isLoading} />
-        </div>
-      )}
-
-      {/* About Modal */}
-      <AboutModal 
-        isOpen={isAboutModalOpen} 
-        onClose={() => setIsAboutModalOpen(false)} 
-      />
-
-      {/* Results Section - Left Side */}
-      <div 
-        className={`transition-all duration-[2000ms] ease-in-out ${
-          showSplitView ? 'w-[70%] opacity-100' : 'w-0 opacity-0'
-        } overflow-hidden`}
-      >
-        {isTransitioning ? (
-          <ProjectAnalysisLoader />
-        ) : showResults ? (
-          <ResultsView />
-        ) : null}
-      </div>
-
-      {/* Chat Section - Transitions from center to right */}
-      <div 
-        className={`flex flex-col transition-all duration-[2000ms] ease-in-out bg-[#1b98d5] ${
-          showSplitView 
-            ? 'w-[30%] border-l-2 border-white/30' 
-            : 'w-full'
-        }`}
-      >
+        {/* Chat Section - Transitions from center to right */}
+        <div 
+          className={`flex flex-col transition-all duration-[2000ms] ease-in-out bg-[#1b98d5] ${
+            showSplitView 
+              ? 'w-[30%] border-l-2 border-white/30' 
+              : 'w-full'
+          }`}
+        >
         {/* Header Bar - Only shown in split view */}
         {showSplitView && (
           <div className="flex items-center justify-between px-4 py-4 border-b border-white/20 animate-fadeIn">
@@ -186,6 +189,7 @@ export default function ChatPage() {
             />
           </div>
         )}
+        </div>
       </div>
     </div>
   );
